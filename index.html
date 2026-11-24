@@ -47,14 +47,20 @@ tr:nth-child(even) td:first-child{background:#fff5f5}
   </div>
 </div>
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbzoMSYtSNGIl3I1NhfLukvXDjTjesFPRI0qPQNnSkJ_EAIqAWCtAdZ34XWfWp7H_EVHKg/exec";
+const SPREADSHEET_ID = "1ERT9boBpF16VrVNBSRD6P1hTm6D0IsX16at6R3ZPtBs";
+async function ambilSheet(namaSheet) {
+  const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(namaSheet)}`;
+  const res = await fetch(url);
+  const text = await res.text();
+  const json = JSON.parse(text.substr(47).slice(0, -2));
+  return json.table.rows.map(r => r.c.map(c => c ? c.v : ""));
+}
 let tipeAktif="", kodeAktif="";
 async function pilihTipe(tipe){
   tipeAktif=tipe;
   document.getElementById('kodeBox').style.display='block';
   document.getElementById('hasilBox').style.display='none';
-  let res = await fetch(API_URL + "?action=getKodes&tipe=" + tipe);
-  let kodes = await res.json();
+  let kodes = ["MT1", "MTZ", "MV1", "MVZ", "MW1", "MW2"];
   let h="";
   kodes.forEach(k=>{ h+=`<button class="btn btn-kode" onclick="pilihKode(this,'${k}')">${k}</button>`; });
   document.getElementById('kodeList').innerHTML=h;
@@ -67,8 +73,8 @@ async function pilihKode(el,kode){
   document.getElementById('judul').innerText = tipeAktif+" - Kode "+kode;
   document.getElementById('loading').style.display='block';
   document.getElementById('tabel').innerHTML='';
-  let res = await fetch(API_URL + "?action=getData&tipe=" + tipeAktif + "&kode=" + kodeAktif);
-  let data = await res.json();
+  let semua = await ambilSheet(kodeAktif); 
+  let data = { header: semua[0], rows: semua.slice(1) };
   document.getElementById('loading').style.display='none';
   let h="<table><tr>";
   data.header.forEach(c=>{ h+=`<th>${c}</th>`; });
