@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:Arial,sans-serif;margin:0;background:#f4f4f4}
+.header{background:#CC0000;color:#fff;padding:16px;text-align:center}
+.header h1{margin:0;font-size:20px}
+.wrap{padding:14px;max-width:900px;margin:auto}
+.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.btn{padding:12px 18px;border:0;border-radius:20px;font-weight:bold;cursor:pointer;margin:4px}
+.btn-pcx{background:#CC0000;color:#fff}
+.btn-stylo{background:#111;color:#fff}
+.btn-kode{background:#eee}
+.btn-kode.active{background:#CC0000;color:#fff}
+select,button{font-size:15px}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:600px}
+th,td{border:1px solid #ddd;padding:8px;text-align:center;white-space:nowrap}
+th{background:#CC0000;color:#fff;position:sticky;top:0}
+tr:nth-child(even){background:#fff5f5}
+#loading{text-align:center;padding:20px}
+.wa{display:block;text-align:center;background:#25D366;color:#fff;padding:13px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="header"><h1>🏍️ DAFTAR HARGA PCX & STYLO</h1><div>Harga OTR - DP - Angsuran</div></div>
+<div class="wrap">
+  <div class="card">
+    <b>1. Pilih Tipe Motor:</b><br><br>
+    <button class="btn btn-pcx" onclick="pilihTipe('PCX')">HONDA PCX</button>
+    <button class="btn btn-stylo" onclick="pilihTipe('STYLO')">HONDA STYLO</button>
+  </div>
+  <div class="card" id="kodeBox" style="display:none">
+    <b>2. Pilih Kode:</b><br><br><div id="kodeList"></div>
+  </div>
+  <div class="card" id="hasilBox" style="display:none">
+    <h3 id="judul" style="margin:0 0 10px"></h3>
+    <div id="loading">Loading...</div>
+    <div class="table-wrap"><div id="tabel"></div></div>
+    <a class="wa" href="https://wa.me/6281234567890?text=Halo,%20saya%20mau%20tanya%20harga%20motor" target="_blank">💬 Tanya Sales via WhatsApp</a>
+  </div>
+</div>
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzoMSYtSNGIl3I1NhfLukvXDjTjesFPRI0qPQNnSkJ_EAIqAWCtAdZ34XWfWp7H_EVHKg/exec";
+let tipeAktif="", kodeAktif="";
+async function pilihTipe(tipe){
+  tipeAktif=tipe;
+  document.getElementById('kodeBox').style.display='block';
+  document.getElementById('hasilBox').style.display='none';
+  let res = await fetch(API_URL + "?action=getKodes&tipe=" + tipe);
+  let kodes = await res.json();
+  let h="";
+  kodes.forEach(k=>{ h+=`<button class="btn btn-kode" onclick="pilihKode(this,'${k}')">${k}</button>`; });
+  document.getElementById('kodeList').innerHTML=h;
+}
+async function pilihKode(el,kode){
+  kodeAktif=kode;
+  document.querySelectorAll('.btn-kode').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('hasilBox').style.display='block';
+  document.getElementById('judul').innerText = tipeAktif+" - Kode "+kode;
+  document.getElementById('loading').style.display='block';
+  document.getElementById('tabel').innerHTML='';
+  let res = await fetch(API_URL + "?action=getData&tipe=" + tipeAktif + "&kode=" + kodeAktif);
+  let data = await res.json();
+  document.getElementById('loading').style.display='none';
+  let h="<table><tr>";
+  data.header.forEach(c=>{ h+=`<th>${c}</th>`; });
+  h+="</tr>";
+  data.rows.forEach(r=>{
+    h+="<tr>";
+    r.forEach(c=>{
+      let v=c;
+      if(typeof v==='number') v=v.toLocaleString('id-ID');
+      h+=`<td>${v}</td>`;
+    });
+    h+="</tr>";
+  });
+  h+="</table>";
+  document.getElementById('tabel').innerHTML=h;
+}
+</script>
+</body>
+</html>
