@@ -85,6 +85,10 @@ async function pilihKode(el,kode){
   h+="</table>";
   document.getElementById('tabel').innerHTML=h;
 }
+  document.querySelectorAll('.btn-pcx, .btn-stylo').forEach(b=>b.addEventListener('click',()=>{
+document.querySelectorAll('.btn-pcx, .btn-stylo').forEach(x=>x.classList.remove('active'));
+b.classList.add('active');
+}));
 </script>
 </body>
 </html>
