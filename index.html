@@ -59,7 +59,7 @@ const url = `https://docs.google.com/spreadsheets/d/${idSheet}/gviz/tq?tqx=out:j
   const res = await fetch(url);
   const text = await res.text();
   const json = JSON.parse(text.substr(47).slice(0, -2));
-  return json.table.rows.map(r => r.c.map(c => c ? c.v : ""));
+  return json.table.rows.map(r => r.c.map(c => (c && c.v != null ? c.v : "")));
 }
 let tipeAktif="", kodeAktif="";
 async function pilihTipe(tipe){
