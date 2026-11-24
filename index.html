@@ -81,7 +81,7 @@ async function pilihKode(el,kode){
   document.getElementById('tabel').innerHTML='';
   let semua = await ambilSheet(kodeAktif); 
   let start = semua.findIndex(r => r[0] && r[0].toString().toUpperCase().includes('TYPE'));
-let data = { header: ["Type", "Uang Muka", "Cukup Bayar", "6", "12", "18", "24", "30*", "36"], rows: semua.slice(start + 2) };
+let data = { header: ["Type", "Uang Muka", "Cukup Bayar", "6", "12", "18", "24", "30", "36"], rows: semua.slice(start + 2) };
   document.getElementById('loading').style.display='none';
   let h="<table><tr>";
   data.header.forEach(c=>{ h+=`<th>${c}</th>`; });
