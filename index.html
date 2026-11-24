@@ -60,7 +60,7 @@ async function pilihTipe(tipe){
   tipeAktif=tipe;
   document.getElementById('kodeBox').style.display='block';
   document.getElementById('hasilBox').style.display='none';
-  let kodes = ["MT1", "MTZ", "MV1", "MVZ", "MW1", "MW2"];
+  let kodes = ["MT1", "MTZ", "MV1", "MVZ", "MW1", "MWZ"];
   let h="";
   kodes.forEach(k=>{ h+=`<button class="btn btn-kode" onclick="pilihKode(this,'${k}')">${k}</button>`; });
   document.getElementById('kodeList').innerHTML=h;
