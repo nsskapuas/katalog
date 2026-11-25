@@ -14,7 +14,8 @@ body{font-family:Arial,sans-serif;margin:0;background:#f4f4f4}
 .table-wrap{overflow-x:auto;border:1px solid #ddd;border-radius:8px}
 table{border-collapse:collapse;width:100%;table-layout:fixed}
 th,td{border:1px solid #ddd;padding:7px 4px;text-align:center;font-size:12px;white-space:normal;word-break:break-word}
-td:first-child{text-align:left}
+td:first-child{text-align:left;word-break:break-word}
+td:nth-child(n+2){white-space:nowrap;word-break:normal;overflow-wrap:normal}
 .swipe-hint{font-size:12px;color:#888;text-align:center;margin:6px 0 0}
 .wa{display:block;text-align:center;background:#25D366;color:#fff;padding:13px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:12px}
 </style>
@@ -40,8 +41,6 @@ const CONFIG = {
 };
 let tipeAktif = "";
 function txt(v){ return v == null ? "" : String(v); }
-
-// Ambil Sheet mentah A:I sampai baris 100, pake JSON gviz
 async function ambilSheet(id, sheet) {
   const url = 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&headers=0&sheet=' + encodeURIComponent(sheet) + '&range=A1:I100&cache=' + Date.now();
   const res = await fetch(url);
@@ -89,14 +88,18 @@ async function pilihKode(el, kode){
   try{
     let semua = await ambilSheet(CONFIG.MOTORS[tipeAktif].spreadsheetId, kode);
     document.getElementById('loading').style.display = 'none';
-
-    // Tampilkan mentah A:I 1-100, apa adanya dari Sheet
-    // Buang baris yang kosong semua biar gak kepanjangan
     let h = "<table>";
     semua.forEach(function(r){
       let kosongSemua = true;
       for(let i=0;i<r.length;i++){ if(txt(r[i]).trim() !== "") kosongSemua = false; }
       if(kosongSemua) return;
+      // FIX: Kalau ini baris header 6 | 12, paksa isi UANG MUKA | CUKUP BAYAR
+      // Karena di Sheet cell-nya ke-merge jadi kebaca kosong sama Google
+      let isHeaderAngsuran = (txt(r[3]).trim() === "6" && txt(r[4]).trim() === "12");
+      if(isHeaderAngsuran){
+        if(txt(r[1]).trim() === "") r[1] = "UANG MUKA";
+        if(txt(r[2]).trim() === "") r[2] = "CUKUP BAYAR";
+      }
       h += "<tr>";
       for(let i=0;i<r.length;i++){
         h += "<td>" + formatAngka(r[i]) + "</td>";
