@@ -96,14 +96,15 @@ async function pilihKode(el, kode){
   document.getElementById('infoBox').innerHTML = '';
   try{
     let semua = await ambilSheet(CONFIG.MOTORS[tipeAktif].spreadsheetId, kode);
-
-    // === HEADER: Cari baris yang kolom B=Type dan kolom C=UANG ===
-    // Ini baris header tabel yang bener, bukan baris Type motor
     let idxHead = -1;
     for(let i=0;i<semua.length;i++){
-      let cB = txt(semua[i][1]).toUpperCase().replace(":","").trim();
-      let cC = txt(semua[i][2]).toUpperCase().trim();
-      if(cB === "TYPE" && cC.indexOf("UANG") !== -1){ idxHead = i; break; }
+      let hitung = 0;
+      for(let c=4;c<=9;c++){
+        let v = txt(semua[i][c]).replace("*","").trim();
+        let n = Number(v);
+        if(v !== "" && !isNaN(n) && n >= 3 && n <= 60) hitung++;
+      }
+      if(hitung >= 4){ idxHead = i; break; }
     }
 
     // === HEADER 100% DARI SHEET ===
@@ -130,13 +131,22 @@ async function pilihKode(el, kode){
     let semuaTeks = "";
     for(let i=0;i<semua.length;i++) for(let c=0;c<semua[i].length;c++) semuaTeks += " " + txt(semua[i][c]);
     let upTeks = semuaTeks.toUpperCase();
-    // AREA: kata setelah AREA sampai PROGRAM
-    if(upTeks.indexOf("AREA") !== -1){
-      let s = semuaTeks.substring(upTeks.indexOf("AREA") + 4).replace(/^[: ]+/,"");
-      let cut = s.toUpperCase().indexOf("PROGRAM");
-      if(cut !== -1) s = s.substring(0, cut);
-      area = s.replace(/DAFTAR HARGA.*/i,"").replace(/:/g,"").trim().split("  ")[0].trim().split(" ")[0];
+        // AREA: cari sel yang ada tulisan AREA, ambil sesudah ":"
+    for(let i=0;i<semua.length;i++){
+      for(let c=0;c<semua[i].length;c++){
+        let v = txt(semua[i][c]);
+        if(v.toUpperCase().indexOf("AREA") !== -1 && v.toUpperCase().indexOf(":") !== -1){
+          let s = v.split(":")[1] || "";
+          s = s.replace(/PROGRAM.*/i,"").trim();
+          if(s !== "" && s.toUpperCase().indexOf("DAFTAR") === -1) area = s;
+        }
+        // Kalau AREA dan KAPUAS pisah sel, ambil sel sebelahnya
+        if(v.toUpperCase().trim() === "AREA" || v.toUpperCase().trim() === "AREA :"){
+          if(txt(semua[i][c+1]).trim() !== "") area = txt(semua[i][c+1]).trim();
+        }
+      }
     }
+    
     if(upTeks.indexOf("PROGRAM") !== -1){
       let s = semuaTeks.substring(upTeks.indexOf("PROGRAM") + 7).replace(/^[: ]+/,"");
       let cut = s.toUpperCase().indexOf("BERLAKU");
