@@ -3,87 +3,45 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KATALOG NSS KAPUAS</title>
+<title>Price List Honda - NSS Kapuas</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
-  body { font-family: Arial, sans-serif; margin: 0; background: #f2f2f2; padding-bottom: 30px; }
-  .header { background: #e4002b; color: white; padding: 14px; text-align: center; font-weight: bold; font-size: 18px; }
-  .sub { text-align: center; font-size: 12px; color: #666; padding: 6px; }
-  .hint { font-size: 12px; color: #555; padding: 8px 12px; }
-
-  /* TOMBOL MOTOR */
-  .list-tombol { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
-  .tombol-motor {
-    padding: 10px 16px; border: 1px solid #ddd; border-radius: 20px;
-    background: white; font-weight: bold; cursor: pointer; font-size: 13px;
-  }
-  .tombol-motor.active { background: #e4002b; color: white; border-color: #e4002b; }
-
-  /* TOMBOL PCX 160 SULTAN */
-  .tombol-motor.premium {
-    background: linear-gradient(135deg, #1a1a1a, #444);
-    color: #FFD700; border: 1px solid #FFD700;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    line-height: 1.1;
-  }
-  .tombol-motor.premium small {
-    display: block; font-size: 9px; color: white; letter-spacing: 2px; font-weight: normal;
-  }
-
-  /* TABEL + BAYANGAN KANAN */
-  .bungkus-tabel {
-    overflow-x: auto; background: white;
-    box-shadow: inset -20px 0 20px -20px rgba(0,0,0,0.5);
-    -webkit-overflow-scrolling: touch;
-    margin: 0 10px; border-radius: 10px;
-  }
-  table { border-collapse: collapse; white-space: nowrap; min-width: 700px; width: 100%; }
-  th, td { border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 13px; }
-  th { background: #333; color: white; }
-  td:first-child { background: #fff5f5; font-weight: bold; text-align: left; }
-  .dp { font-weight: bold; color: #e4002b; }
-  .judul-motor { padding: 12px; font-weight: bold; font-size: 16px; }
+  *{box-sizing:border-box} body{margin:0;font-family:'Poppins',Arial, sans-serif;background:#f4f4f4;padding:0}
+  .header{background:#E60012;color:#fff;padding:22px 14px 20px;text-align:center;border-radius:0 0 20px 20px;box-shadow:0 3px 10px rgba(0,0,0,.2);display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .header h1{margin:0;font-size:28px;font-weight:800;letter-spacing:1.5px;line-height:1.1;text-align:center}
+  .header .sub{margin:6px 0 0;font-size:16px;font-weight:700;letter-spacing:3px;text-align:center}
+  .header .desc{margin:6px 0 0;font-size:11px;font-weight:600;letter-spacing:0.5px;text-align:center;opacity:.85}
+  .wrap{padding:12px;padding-bottom:90px}
+  .tabs{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button{flex:0 0 auto;padding:13px 18px;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;background:#fff;color:#333;box-shadow:0 2px 6px rgba(0,0,0,.08);white-space:nowrap;font-family:'Poppins',Arial,sans-serif}
+  .tabs button.active{background:#E60012;color:#fff}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+  .chips button{padding:9px 16px;border:1px solid #ddd;background:#fff;border-radius:20px;font-weight:700;cursor:pointer;font-size:14px;font-family:'Poppins',Arial,sans-serif}
+  .chips button.active{background:#111;color:#fff;border-color:#111}
+  .card{background:#fff;border-radius:16px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden}
+  .card h3{margin:0 0 10px;font-size:18px;color:#E60012;border-bottom:2px solid #E60012;padding-bottom:8px}
+  /* INI YANG GUA TAMBAHIN BRO - BAYANGANNYA DISINI */
+  .table-wrap{max-height:65vh;overflow:auto;border:1px solid #eee;border-radius:10px;box-shadow: inset -20px 0 20px -20px rgba(0,0,0,0.5);}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+  th,td{border-bottom:1px solid #eee;padding:8px 8px;text-align:left;white-space:nowrap}
+  tr:nth-child(even) td{background:#fafafa}
+  td{color:#222}
+  tr:first-child td{position:sticky;top:0;z-index:5;background:#fff !important;font-weight:900;font-size:15px;border-bottom:2px solid #E60012;box-shadow:0 2px 4px rgba(0,0,0,.08)}
+  .empty{text-align:center;padding:50px 20px;color:#999;background:#fff;border-radius:16px;line-height:1.6}
+  .loading{text-align:center;padding:30px;color:#777}
+  .footer{text-align:center;font-size:11px;color:#aaa;padding:12px}
+  .wa-float{position:fixed;right:16px;bottom:18px;z-index:999;background:#25D366;color:#fff;border:none;border-radius:50px;padding:14px 18px;font-family:'Poppins',Arial,sans-serif;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 6px 18px rgba(37,211,102,.45);display:flex;align-items:center;gap:8px}
+  .wa-float span{font-size:18px}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:none;align-items:flex-end;justify-content:center;padding:16px}
+  .overlay.show{display:flex}
+  .popup{background:#fff;width:100%;max-width:420px;border-radius:20px;padding:20px;text-align:center;animation:naik .25s ease}
+  @keyframes naik{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .popup h2{margin:0 0 6px;font-size:18px;color:#111}
+  .popup p{margin:0 0 16px;font-size:13px;color:#666;line-height:1.5}
+  .btn-wa{display:block;background:#25D366;color:#fff;text-decoration:none;padding:14px;border-radius:12px;font-weight:800;font-size:15px}
+  .btn-batal{display:block;background:#f1f1f1;color:#333;border:none;width:100%;padding:13px;border-radius:12px;font-weight:700;font-size:14px;margin-top:10px;cursor:pointer;font-family:'Poppins',Arial,sans-serif}
 </style>
 </head>
 <body>
-
-<div class="header">KATALOG NSS KAPUAS</div>
-<div class="sub">Kredit Motor Honda - Kapuas, Kalimantan Tengah</div>
-
-<!-- TOMBOL PILIH MOTOR -->
-<div class="list-tombol">
-  <button class="tombol-motor">Beat Deluxe CBS</button>
-  <button class="tombol-motor">Beat Street</button>
-  <button class="tombol-motor">Scoopy Stylish</button>
-  <button class="tombol-motor">Vario 160 CBS</button>
-  <button class="tombol-motor premium active">
-    PCX 160
-    <small>✨ PREMIUM ✨</small>
-  </button>
-  <button class="tombol-motor">ADV 160</button>
-</div>
-
-<div class="judul-motor">PCX 160 - Tabel Cicilan</div>
-<div class="hint">👉 Geser ke kanan buat liat cicilan lengkap</div>
-
-<div class="bungkus-tabel">
-  <table>
-    <tr>
-      <th>DP</th><th>6x</th><th>12x</th><th>13x</th><th>14x</th><th>18x</th><th>19x</th><th>20x</th><th>24x</th><th>25x</th><th>26x</th>
-    </tr>
-    <tr>
-      <td class="dp">4.600.000</td><td>2.345.000</td><td>1.423.000</td><td>1.343.000</td><td>1.286.000</td><td>1.115.000</td><td>1.065.000</td><td>1.037.000</td><td>951.000</td><td>929.000</td><td>911.000</td>
-    </tr>
-    <tr>
-      <td class="dp">4.800.000</td><td>2.315.000</td><td>1.407.000</td><td>1.325.000</td><td>1.271.000</td><td>1.106.000</td><td>1.059.000</td><td>1.026.000</td><td>938.000</td><td>917.000</td><td>899.000</td>
-    </tr>
-    <tr>
-      <td class="dp">5.000.000</td><td>2.286.000</td><td>1.393.000</td><td>1.308.000</td><td>1.255.000</td><td>1.096.000</td><td>1.050.000</td><td>1.015.000</td><td>923.000</td><td>903.000</td><td>885.000</td>
-    </tr>
-    <tr>
-      <td class="dp">5.500.000</td><td>2.210.000</td><td>1.358.000</td><td>1.275.000</td><td>1.220.000</td><td>1.071.000</td><td>1.025.000</td><td>990.000</td><td>897.000</td><td>876.000</td><td>857.000</td>
-    </tr>
-  </table>
-</div>
-
-</body>
-</html>
+<div class="header"><h1>PRICE LIST HONDA</h1><p class="sub">NSS KAPUAS</p
