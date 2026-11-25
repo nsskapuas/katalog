@@ -12,8 +12,8 @@ body{font-family:Arial,sans-serif;margin:0;background:#f4f4f4}
 .btn-tipe,.btn-kode{background:#eee;color:#222;border:1px solid #ddd}
 .btn-tipe.active,.btn-kode.active{background:#CC0000;color:#fff}
 .table-wrap{overflow-x:auto;border:1px solid #ddd;border-radius:8px}
-table{border-collapse:collapse;width:100%;min-width:600px}
-th,td{border:1px solid #ddd;padding:7px 6px;text-align:center;white-space:nowrap;font-size:13px}
+table{border-collapse:collapse;width:100%;table-layout:fixed}
+th,td{border:1px solid #ddd;padding:7px 4px;text-align:center;font-size:12px;white-space:normal;word-break:break-word}
 td:first-child{text-align:left}
 .swipe-hint{font-size:12px;color:#888;text-align:center;margin:6px 0 0}
 .wa{display:block;text-align:center;background:#25D366;color:#fff;padding:13px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:12px}
@@ -43,7 +43,7 @@ function txt(v){ return v == null ? "" : String(v); }
 
 // Ambil Sheet mentah A:I sampai baris 100, pake JSON gviz
 async function ambilSheet(id, sheet) {
-  const url = 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&headers=0&sheet=' + encodeURIComponent(sheet) + '&range=A1:I100';
+  const url = 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&headers=0&sheet=' + encodeURIComponent(sheet) + '&range=A1:I100&cache=' + Date.now();
   const res = await fetch(url);
   let text = await res.text();
   let start = text.indexOf("{");
