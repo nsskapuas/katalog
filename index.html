@@ -13,11 +13,11 @@
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
   .chips button{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:20px;font-weight:700;cursor:pointer}
   .chips button.active{background:#111;color:#fff}
-  .card{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-  .card h3{margin:0;font-size:18px} .price{font-size:22px;font-weight:800;color:#d60000;margin:4px 0 8px}
-  table{width:100%;border-collapse:collapse;font-size:13px;overflow-x:auto;display:block}
-  th,td{border:1px solid #eee;padding:6px;text-align:right;white-space:nowrap} th{background:#111;color:#fff} td:first-child,th:first-child{text-align:left;font-weight:700}
-  .loading{text-align:center;padding:30px;color:#777}
+  .card{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden}
+  .card h3{margin:0 0 10px;font-size:18px}
+  table{width:100%;border-collapse:collapse;font-size:13px;display:block;overflow-x:auto}
+  th,td{border:1px solid #eee;padding:6px 8px;text-align:left;white-space:nowrap}
+  td{color:#222} .loading{text-align:center;padding:30px;color:#777}
 </style>
 </head>
 <body>
@@ -34,7 +34,7 @@ const CONFIG = {
   PCX:   { id: "1ERT9boBpF16VrVNBSRD6P1hTm6D0IsX16at6R3ZPtBs", tabs: ["MTZ","MVZ","MWZ","MT1","MV1","MW1"] }
 };
 let current = "STYLO", activeCode = "SEMUA";
-let cache = {}; // tab -> {title, price, headers, rows}
+let cache = {};
 
 function switchMotor(m){
   current=m; activeCode="SEMUA";
@@ -54,40 +54,8 @@ async function fetchSheet(id, tab){
   const text = await res.text();
   const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}')+1));
   const rows = json.table.rows.map(r => (r.c||[]).map(cell => cell ? (cell.f || cell.v) : ""));
-  return rows;
-}
-function parseRows(rows){
-  // Cari baris yang ada nama motor (mengandung PCX / STYLO) dan baris harga Rp
-  let title="", price="";
-  let headerRow = -1;
-  rows.forEach((r,i)=>{
-    const joined = r.join(" ");
-    if(!title && /PCX|STYLO/i.test(joined) && joined.length < 60) title = r.filter(Boolean).join(" ");
-    if(!price && /Rp/i.test(joined) && joined.length < 40) price = r.filter(Boolean)[0] || "";
-    if(headerRow==-1 && r.some(c=>String(c).trim()=="11" || String(c).trim()=="UANG MUKA")) headerRow = i;
-  });
-  // Header: baris headerRow, data: setelahnya sampai baris kosong / yang ada tulisan PERSYARATAN / Catatan
-  let headers = [], data = [];
-  if(headerRow!=-1){
-    // Ambil baris header + baris sebelumnya yang ada UANG MUKA / ANGSURAN untuk label
-    // Sederhanakan: header = baris headerRow, tapi ganti kolom pertama jadi "UANG MUKA"
-    headers = rows[headerRow].map((c,idx)=> {
-      if(idx==0) return "UANG MUKA";
-      if(idx==1) return "BAYAR";
-      return c ? c+"x" : "";
-    });
-    for(let i=headerRow+1;i<rows.length;i++){
-      const r = rows[i];
-      if(!r[0]) continue;
-      const j = r.join(" ");
-      if(/PERSYARATAN|Catatan|SUBSIDI|ONE HEART|Foto Copy/i.test(j)) break;
-      if(!/^\d/.test(String(r[0]).replace(/[^0-9]/g,"").slice(0,1)) && isNaN(parseInt(String(r[0]).replace(/\D/g,"")))) continue;
-      // hanya ambil yang kolom pertama angka (DP)
-      if(String(r[0]).match(/\d{3}\.\d{3}/) || String(r[0]).match(/^\d/)) data.push(r);
-      if(data.length>60) break;
-    }
-  }
-  return {title, price, headers, data};
+  // buang baris yang bener-bener kosong semua
+  return rows.filter(r => r.some(c => String(c).trim() !== ""));
 }
 async function load(){
   renderChips();
@@ -95,10 +63,8 @@ async function load(){
   const cfg = CONFIG[current];
   cache = {};
   for(const tab of cfg.tabs){
-    try{
-      const rows = await fetchSheet(cfg.id, tab);
-      cache[tab] = parseRows(rows);
-    }catch(e){ cache[tab] = {title:tab, price:"", headers:[], data:[]}; }
+    try{ cache[tab] = await fetchSheet(cfg.id, tab); }
+    catch(e){ cache[tab] = [["Gagal ambil "+tab+" - cek izin Anyone with link"]]; }
   }
   render();
 }
@@ -107,12 +73,11 @@ function render(){
   const tabs = activeCode=="SEMUA" ? CONFIG[current].tabs : [activeCode];
   let html = "";
   tabs.forEach(tab=>{
-    const d = cache[tab]; if(!d) return;
-    const thead = d.headers.length ? `<tr>${d.headers.map(h=>`<th>${h}</th>`).join("")}</tr>` : "";
-    const tbody = d.data.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("");
-    html += `<div class="card"><h3>[${tab}] ${d.title || tab}</h3><div class="price">${d.price || ""}</div><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+    const rows = cache[tab] || [];
+    const table = `<table>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}</table>`;
+    html += `<div class="card"><h3>[${tab}]</h3>${table}</div>`;
   });
-  list.innerHTML = html || "Gak ketemu / gagal ambil. Cek izin Anyone with link.";
+  list.innerHTML = html || "Gak ketemu.";
 }
 load();
 </script>
