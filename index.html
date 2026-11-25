@@ -152,7 +152,7 @@ async function pilihKode(el, kode){
       let v = txt(semua[i][4]).replace("*","").trim();
       if(v === "6"){ idxTenor = i; break; }
     }
-    let tenor = ["6","12","18","24","30","36"];
+    let tenor = [];
     if(idxTenor !== -1){
       tenor = [];
       for(let c=4;c<=9;c++){ tenor.push(txt(semua[idxTenor][c]) || ""); }
