@@ -21,7 +21,6 @@
   .chips button.active{background:#111;color:#fff;border-color:#111}
   .card{background:#fff;border-radius:16px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden}
   .card h3{margin:0 0 10px;font-size:18px;color:#E60012;border-bottom:2px solid #E60012;padding-bottom:8px}
-  /* INI YANG GUA TAMBAHIN BRO - BAYANGANNYA DISINI */
   .table-wrap{max-height:65vh;overflow:auto;border:1px solid #eee;border-radius:10px;box-shadow: inset -20px 0 20px -20px rgba(0,0,0,0.5);}
   table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   th,td{border-bottom:1px solid #eee;padding:8px 8px;text-align:left;white-space:nowrap}
@@ -44,4 +43,89 @@
 </style>
 </head>
 <body>
-<div class="header"><h1>PRICE LIST HONDA</h1><p class="sub">NSS KAPUAS</p
+<div class="header"><h1>PRICE LIST HONDA</h1><p class="sub">NSS KAPUAS</p><p class="desc">Area kapuas • update otomatis dari spreadsheet</p></div>
+<div class="wrap">
+<div class="tabs" id="motorTabs"></div>
+<div class="chips" id="chips"></div>
+<div id="list"><div class="empty">👆 Silahkan pilih kode di atas dulu<br><small>Contoh: MTZ, MFW, MYA...</small></div></div>
+<div class="footer">Honda Kapuas - Harga dapat berubah sewaktu-waktu</div>
+</div>
+<button class="wa-float" onclick="bukaPopup()"><span>💬</span> Update PL Hubungi CRM</button>
+<div class="overlay" id="overlay" onclick="tutupPopup(event)">
+  <div class="popup">
+    <div style="font-size:40px">💬</div>
+    <h2>Update PL Hubungi CRM</h2>
+    <p>Price List belum update / ada harga baru?<br>Langsung chat CRM NSS Kapuas ya!</p>
+    <a class="btn-wa" id="linkWA" href="#" target="_blank">Chat WhatsApp Sekarang →</a>
+    <button class="btn-batal" onclick="tutupPopup()">Batal</button>
+  </div>
+</div>
+<script>
+const SHEET_ID = "1gs1mlan-b86O2ZyCiHLzsxvo8tRdiDuu9SXXShpJLBY";
+const NOMOR_WA = "6285183349948";
+const PESAN_WA = "Halo CRM NSS Kapuas, saya mau update Price List Honda 🙏";
+const CONFIG = {
+  PCX:         ["MTZ","MVZ","MWZ","MT1","MV1","MW1"],
+  STYLO:       ["MFW","MFV","MGV","MGX","MF1"],
+  "VARIO EVO": ["MYA","MYL","MY0","MZ0"],
+  "VARIO 125": ["ND0","NE0","NF0","NFZ","NFV"],
+  "ADV 160":   ["NA0","NB0","NC0"],
+  "HONDA BEAT": ["MJ2","MK2","ML2","MLY","MLV","MMV"],
+  SCOOPY:      ["MRT","MSP-MSW"]
+};
+// INI TRIKNYA BRO - KEY TETEP PCX, TAMPILAN JADI PCX 160
+const LABELS = { PCX: "PCX 160" };
+function label(m){ return LABELS[m] || m; }
+let current = "PCX", activeCode = null;
+let cache = {};
+function renderMotorTabs(){
+  document.getElementById("motorTabs").innerHTML = Object.keys(CONFIG).map(m=>`<button class="${current==m?"active":""}" onclick="switchMotor('${m}')">${label(m)}</button>`).join("");
+}
+function switchMotor(m){
+  current=m; activeCode=null; cache={};
+  renderMotorTabs(); renderChips();
+  document.getElementById("list").innerHTML = `<div class="empty">👆 Silahkan pilih kode di atas dulu<br><small>${CONFIG[m].join(", ")}</small></div>`;
+}
+function renderChips(){
+  const tabs = CONFIG[current];
+  document.getElementById("chips").innerHTML = tabs.map(t=>`<button class="${activeCode==t?"active":""}" onclick="setCode('${t}')">${t}</button>`).join("");
+}
+async function setCode(c){
+  activeCode=c; renderChips();
+  document.getElementById("list").innerHTML = `<div class="loading">Lagi ngambil ${c}...</div>`;
+  if(!cache[c]){
+    try{
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(c)}`;
+      const res = await fetch(url);
+      const text = await res.text();
+      const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}')+1));
+      let rows = json.table.rows.map(r => (r.c||[]).map(cell => cell ? (cell.f || cell.v) : ""));
+      let maxCol = 0;
+      rows.forEach(r=>{ for(let i=r.length-1;i>=0;i--){ if(String(r[i]).trim()!==""){ maxCol=Math.max(maxCol,i); break; } } });
+      rows = rows.map(r => r.slice(0, maxCol+1));
+      rows = rows.filter(r => r.some(cell => String(cell).trim() !== ""));
+      let keepCol = [];
+      for(let col=0; col<=maxCol; col++){
+        if(rows.some(r => String(r[col]||"").trim() !== "")) keepCol.push(col);
+      }
+      rows = rows.map(r => keepCol.map(col => r[col]||""));
+      cache[c] = rows;
+    }catch(e){ cache[c] = [["Gagal ambil "+c+" - Cek nama Sheet / Izin Spreadsheet"]]; }
+  }
+  const rows = cache[c];
+  const table = `<div class="table-wrap"><table>${rows.map(r=>`<tr>${r.map(cell=>`<td>${cell}</td>`).join("")}</tr>`).join("")}</table></div>`;
+  document.getElementById("list").innerHTML = `<div class="card"><h3>[${c}] ${label(current)} - PRICE LIST</h3>${table}</div>`;
+}
+function bukaPopup(){
+  document.getElementById("linkWA").href = "https://wa.me/" + NOMOR_WA + "?text=" + encodeURIComponent(PESAN_WA);
+  document.getElementById("overlay").classList.add("show");
+}
+function tutupPopup(e){
+  if(e && e.target.id !== "overlay" && e.target.className !== "btn-batal") return;
+  if(!e) document.getElementById("overlay").classList.remove("show");
+  if(e && e.target.id === "overlay") document.getElementById("overlay").classList.remove("show");
+}
+renderMotorTabs(); renderChips();
+</script>
+</body>
+</html>
