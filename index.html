@@ -7,18 +7,17 @@ body{font-family:Arial,sans-serif;margin:0;background:#f4f4f4}
 .header{background:#CC0000;color:#fff;padding:16px;text-align:center}
 .header h1{margin:0;font-size:20px}
 .wrap{padding:14px;max-width:900px;margin:auto}
-.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden}
+.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .btn{padding:12px 18px;border:0;border-radius:20px;font-weight:bold;cursor:pointer;margin:4px}
 .btn-tipe,.btn-kode{background:#eee;color:#222;border:1px solid #ddd}
-.btn-tipe.active,.btn-kode.active{background:#CC0000;color:#fff;border-color:#CC0000}
-.table-wrap{overflow-x:auto;border:1px solid #ddd;border-radius:8px;max-width:100%}
+.btn-tipe.active,.btn-kode.active{background:#CC0000;color:#fff}
+.table-wrap{overflow-x:auto;border:1px solid #ddd;border-radius:8px}
 table{border-collapse:collapse;width:100%;min-width:520px}
 th,td{border:1px solid #ddd;padding:7px 6px;text-align:center;white-space:nowrap;font-size:13px}
 th{background:#CC0000;color:#fff}
 th:first-child,td:first-child{text-align:left;min-width:130px}
 tr:nth-child(even) td{background:#fff5f5}
 .swipe-hint{font-size:12px;color:#888;text-align:center;margin:6px 0 0}
-#loading{text-align:center;padding:20px}
 .wa{display:block;text-align:center;background:#25D366;color:#fff;padding:13px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:12px}
 .info{background:#fff5f5;border:1px solid #ffcccc;border-radius:10px;padding:12px;margin-bottom:12px;font-size:14px;line-height:1.7}
 .info b{color:#CC0000}
@@ -46,12 +45,11 @@ const CONFIG = {
 };
 let tipeAktif = "";
 function txt(v){ return v == null ? "" : String(v); }
-async function ambilSheet(spreadsheetId, namaSheet) {
-  const url = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(namaSheet);
+async function ambilSheet(id, sheet) {
+  const url = 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(sheet);
   const res = await fetch(url);
   const text = await res.text();
-  let rows = [];
-  let cur = '', inQ = false, row = [];
+  let rows = [], cur = '', inQ = false, row = [];
   for(let i=0;i<text.length;i++){
     let c = text[i];
     if(c === '"'){ if(inQ && text[i+1] === '"'){ cur += '"'; i++; } else inQ = !inQ; }
@@ -96,114 +94,73 @@ async function pilihKode(el, kode){
   document.getElementById('infoBox').innerHTML = '';
   try{
     let semua = await ambilSheet(CONFIG.MOTORS[tipeAktif].spreadsheetId, kode);
-    let idxHead = -1;
-    for(let i=0;i<semua.length;i++){
-      let hitung = 0;
-      for(let c=4;c<=9;c++){
-        let v = txt(semua[i][c]).replace("*","").trim();
-        let n = Number(v);
-        if(v !== "" && !isNaN(n) && n >= 3 && n <= 60) hitung++;
-      }
-      if(hitung >= 4){ idxHead = i; break; }
+
+    // ===== POSISI TETAP, SESUAI FOTO SHEET LU =====
+    // Baris 0 = Judul, 1 = AREA, 2 = PROGRAM, 3 = Berlaku
+    // Baris 4 = Header atas, 5 = Header bawah, 6 dst = Data
+    let idxHead = 4;
+    let r1 = semua[idxHead] || [];
+    let r2 = semua[idxHead+1] || [];
+
+    // HEADER: dari Sheet, digabung 2 baris
+    let header = [];
+    header.push(txt(r1[1]).replace(":","").trim()); // Type
+    header.push((txt(r1[2]) + " " + txt(r2[2])).trim()); // UANG MUKA
+    header.push((txt(r1[3]) + " " + txt(r2[3])).trim()); // CUKUP BAYAR
+    for(let c=4;c<r1.length;c++){
+      let v = txt(r1[c]).trim();
+      if(v !== "") header.push(v); // Tenor 6,12,18...
     }
 
-    // === HEADER 100% DARI SHEET ===
-    let headerDinamis = [];
-    if(idxHead !== -1 && semua[idxHead+1]){
-      let r1 = semua[idxHead];    // Type: | UANG | CUKUP | 6 | 12 ...
-      let r2 = semua[idxHead+1];  //       | MUKA | BAYAR | ...
-      // Kolom B: Type - buang ":" nya
-      headerDinamis.push(txt(r1[1]).replace(":","").trim());
-      // Kolom C: UANG + MUKA
-      headerDinamis.push((txt(r1[2]) + " " + txt(r2[2])).trim());
-      // Kolom D: CUKUP + BAYAR
-      headerDinamis.push((txt(r1[3]) + " " + txt(r2[3])).trim());
-      // Kolom E dst: Tenor dari baris atas Sheet, apa adanya
-      for(let c=4;c<r1.length;c++){
-        let v = txt(r1[c]).trim();
-        if(v !== "") headerDinamis.push(v);
+    // INFO ATAS: ambil mentah baris 1,2,3
+    function ambilBaris(i){
+      let t = "";
+      if(!semua[i]) return "";
+      for(let c=0;c<semua[i].length;c++){
+        let v = txt(semua[i][c]).trim();
+        if(v !== "") t += (t ? " " : "") + v;
       }
+      return t;
     }
+    let areaRaw = ambilBaris(1);
+    let progRaw = ambilBaris(2);
+    let berlakuRaw = ambilBaris(3);
 
-    // === INFO ATAS: AREA / PROGRAM / BERLAKU / TIPE / OTR ===
-    // Semua dibaca dari teks Sheet, bukan permanen
-    let tipeMotor = "", otr = "", area = "", berlaku = "", program = "";
-    let semuaTeks = "";
-    for(let i=0;i<semua.length;i++) for(let c=0;c<semua[i].length;c++) semuaTeks += " " + txt(semua[i][c]);
-    let upTeks = semuaTeks.toUpperCase();
-        // AREA: cari sel yang ada tulisan AREA, ambil sesudah ":"
-    for(let i=0;i<semua.length;i++){
-      for(let c=0;c<semua[i].length;c++){
-        let v = txt(semua[i][c]);
-        if(v.toUpperCase().indexOf("AREA") !== -1 && v.toUpperCase().indexOf(":") !== -1){
-          let s = v.split(":")[1] || "";
-          s = s.replace(/PROGRAM.*/i,"").trim();
-          if(s !== "" && s.toUpperCase().indexOf("DAFTAR") === -1) area = s;
-        }
-        // Kalau AREA dan KAPUAS pisah sel, ambil sel sebelahnya
-        if(v.toUpperCase().trim() === "AREA" || v.toUpperCase().trim() === "AREA :"){
-          if(txt(semua[i][c+1]).trim() !== "") area = txt(semua[i][c+1]).trim();
-        }
-      }
-    }
-    
-    if(upTeks.indexOf("PROGRAM") !== -1){
-      let s = semuaTeks.substring(upTeks.indexOf("PROGRAM") + 7).replace(/^[: ]+/,"");
-      let cut = s.toUpperCase().indexOf("BERLAKU");
-      if(cut !== -1) s = s.substring(0, cut);
-      program = s.replace(/:/g,"").trim().split("  ")[0].trim();
-    }
-    // BERLAKU: cari sel yang ada bulan/tahun
-    for(let i=0;i<semua.length;i++){
-      for(let c=0;c<semua[i].length;c++){
-        let v = txt(semua[i][c]);
-        let up = v.toUpperCase();
-        if(up.indexOf("BERLAKU") !== -1){
-          // Berlaku bisa 1 sel "Berlaku OKT 2026" atau pisah
-          let m = v.match(/(OKT|NOV|DES|JAN|FEB|MAR|APR|MEI|JUN|JUL|AGU|SEP).*?(\d{4})/i);
-          if(m) berlaku = m[0].toUpperCase();
-          else if(semua[i][c+1]) berlaku = txt(semua[i][c+1]);
-        }
-      }
-    }
-    // TIPE MOTOR: baris data pertama yang kolom B ada STYLO/PCX dan kolom C angka
-    // OTR: baris yang kolom B ada Rp dan kolom C ada SUBSIDI
+    // TIPE MOTOR + OTR: cari di semua baris
+    let tipeMotor = "", otr = "";
     for(let i=0;i<semua.length;i++){
       let b = txt(semua[i][1]);
       let c = txt(semua[i][2]);
-      if(b.indexOf("Rp") !== -1 && c.toUpperCase().indexOf("SUBSIDI") !== -1){ otr = b; }
+      if(b.indexOf("Rp") !== -1 && c.toUpperCase().indexOf("SUBSIDI") !== -1) otr = b;
       if(tipeMotor === "" && (b.toUpperCase().indexOf("PCX") !== -1 || b.toUpperCase().indexOf("STYLO") !== -1)){
         let numC = Number(txt(c).replace(/\./g,"").replace(/,/g,""));
         if(c !== "" && !isNaN(numC) && numC > 100000) tipeMotor = b;
       }
     }
 
-    // === DATA DP: dari baris setelah header, yang kolom C angka > 100rb ===
-    // Baris OTR / SUBSIDI otomatis ke-skip karena kolom C nya bukan angka
+    // DATA: dari baris 6 ke bawah, yang kolom C angka DP
     let rows = [];
-    if(idxHead !== -1){
-      for(let i=idxHead+2;i<semua.length;i++){
-        let b = txt(semua[i][2]).replace(/\./g,"").replace(/,/g,"").replace(/Rp/g,"").replace(/ /g,"");
-        if(b !== "" && !isNaN(Number(b)) && Number(b) > 100000) rows.push(semua[i]);
-      }
+    for(let i=6;i<semua.length;i++){
+      let b = txt(semua[i][2]).replace(/\./g,"").replace(/,/g,"").replace(/Rp/g,"").replace(/ /g,"");
+      if(b !== "" && !isNaN(Number(b)) && Number(b) > 100000) rows.push(semua[i]);
     }
 
     document.getElementById('loading').style.display = 'none';
     let info = '<div class="info">';
     if(tipeMotor) info += '<b>' + tipeMotor + '</b><br>';
     if(otr) info += 'OTR: <b>' + otr + '</b><br>';
-    if(area) info += 'Area: ' + area + ' &nbsp;|&nbsp; ';
-    if(berlaku) info += 'Berlaku: ' + berlaku + ' &nbsp;|&nbsp; ';
-    if(program) info += 'Program: ' + program;
+    if(areaRaw) info += areaRaw + '<br>';
+    if(progRaw) info += progRaw + '<br>';
+    if(berlakuRaw) info += berlakuRaw;
     info += '</div>';
     document.getElementById('infoBox').innerHTML = info;
 
     let h = "<table><tr>";
-    headerDinamis.forEach(function(c){ h += "<th>"+c+"</th>"; });
+    header.forEach(function(c){ h += "<th>"+c+"</th>"; });
     h += "</tr>";
     rows.forEach(function(r, idx){
       h += "<tr><td>" + (idx === 0 ? tipeMotor : "") + "</td>";
-      for(let i=2;i<2+headerDinamis.length-1;i++){ h += "<td>" + formatAngka(r[i] == null ? "" : r[i]) + "</td>"; }
+      for(let i=2;i<2+header.length-1;i++){ h += "<td>" + formatAngka(r[i] == null ? "" : r[i]) + "</td>"; }
       h += "</tr>";
     });
     h += "</table>";
