@@ -46,7 +46,7 @@ const CONFIG = {
 let tipeAktif = "", kodeAktif = "";
 function txt(v){ return v == null ? "" : String(v); }
 async function ambilSheet(spreadsheetId, namaSheet) {
-  const url = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(namaSheet) + '&headers=0';
+  const url = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId + '/export?format=csv&sheet=' + encodeURIComponent(namaSheet);
   const res = await fetch(url);
   const text = await res.text();
   let rows = [];
@@ -115,8 +115,6 @@ async function pilihKode(el, kode){
     let otr = (idxTipe !== -1 && semua[idxTipe+1]) ? txt(semua[idxTipe+1][0]) : "";
     let subsidiVal = (idxSubsidi !== -1 && semua[idxSubsidi+1]) ? txt(semua[idxSubsidi+1][0]) : "";
     document.getElementById('infoBerlaku').innerText = berlaku + " | " + tipeMotor + " | OTR " + otr + " | SUBSIDI " + subsidiVal;
-
-    // Header ngikutin Spreadsheet
     let headerDinamis = ["Type", "Uang Muka", "Cukup Bayar", "6", "12", "18", "24", "30*", "36"];
     if(idxHead !== -1 && semua[idxHead+1]){
       let r1 = semua[idxHead];
@@ -133,7 +131,6 @@ async function pilihKode(el, kode){
         txt(r2[8]) || "36"
       ];
     }
-
     let rows = [];
     for(let i=0;i<semua.length;i++){
       let b = txt(semua[i][1]).replace(/\./g,"").replace(/,/g,"").replace(/Rp/g,"").replace(/ /g,"");
