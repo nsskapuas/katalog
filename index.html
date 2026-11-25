@@ -9,18 +9,14 @@ body{font-family:Arial,sans-serif;margin:0;background:#f4f4f4}
 .wrap{padding:14px;max-width:900px;margin:auto}
 .card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden}
 .btn{padding:12px 18px;border:0;border-radius:20px;font-weight:bold;cursor:pointer;margin:4px}
-.btn-pcx,.btn-stylo{background:#eee;color:#222;border:1px solid #ddd}
-.btn-pcx.active,.btn-stylo.active{background:#CC0000;color:#fff;border-color:#CC0000}
-.btn-kode{background:#eee}
-.btn-kode.active{background:#CC0000;color:#fff}
-select,button{font-size:15px}
+.btn-tipe,.btn-kode{background:#eee;color:#222;border:1px solid #ddd}
+.btn-tipe.active,.btn-kode.active{background:#CC0000;color:#fff;border-color:#CC0000}
 .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #ddd;border-radius:8px;max-width:100%}
 table{border-collapse:collapse;width:100%;min-width:520px}
 th,td{border:1px solid #ddd;padding:7px 6px;text-align:center;white-space:nowrap;font-size:13px}
 th{background:#CC0000;color:#fff;position:sticky;top:0;z-index:2}
 th:first-child,td:first-child{text-align:left;min-width:110px}
 tr:nth-child(even) td{background:#fff5f5}
-tr:nth-child(even) td:first-child{background:#fff5f5}
 .swipe-hint{font-size:12px;color:#888;text-align:center;margin:6px 0 0}
 #loading{text-align:center;padding:20px}
 .wa{display:block;text-align:center;background:#25D366;color:#fff;padding:13px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:12px}
@@ -32,14 +28,14 @@ tr:nth-child(even) td:first-child{background:#fff5f5}
 <div class="wrap">
   <div class="card">
     <b>1. Pilih Tipe Motor:</b><br><br>
-    <button class="btn btn-pcx" onclick="pilihTipe('PCX')">HONDA PCX</button>
-    <button class="btn btn-stylo" onclick="pilihTipe('STYLO')">HONDA STYLO</button>
+    <div id="tipeList"></div>
   </div>
   <div class="card" id="kodeBox" style="display:none">
     <b>2. Pilih Kode:</b><br><br><div id="kodeList"></div>
   </div>
   <div class="card" id="hasilBox" style="display:none">
-    <h3 id="judul" style="margin:0 0 10px"></h3>
+    <h3 id="judul" style="margin:0 0 4px"></h3>
+    <div id="infoBerlaku" style="font-size:13px;color:#666;margin-bottom:10px"></div>
     <div id="loading">Loading...</div>
     <div class="table-wrap"><div id="tabel"></div></div>
     <div class="swipe-hint">👈 Geser tabel ke kiri untuk lihat angsuran lainnya 👉</div>
@@ -47,60 +43,111 @@ tr:nth-child(even) td:first-child{background:#fff5f5}
   </div>
 </div>
 <script>
-const SPREADSHEET_STYLO = "1Sveq5riagQ08sH4YzjIlKJCyrVSGbhc-ZjHWZ1i-Vv4";
-const SPREADSHEET_PCX = "1ERT9boBpF16VrVNBSRD6P1hTm6D0IsX16at6R3ZPtBs";
-const KODES = {
-  STYLO: ["MFW", "MFV", "MGV", "MGX", "MF1"],
-  PCX: ["MTZ", "MVZ", "MWZ", "MT1", "MV1", "MW1"]
+// ============================================================
+// ★★★ CUMA EDIT DI SINI AJA BRO ★★★
+// ============================================================
+const CONFIG = {
+  // Header tabel, dikunci biar gak kena cell gabungan di Sheet
+  HEADER: ["Type", "Uang Muka", "Cukup Bayar", "6", "12", "18", "24", "30*", "36"],
+  MOTORS: {
+    // Tambah motor baru: copy 1 blok ini, ganti nama + spreadsheetId + kodes
+    PCX: {
+      label: "HONDA PCX",
+      spreadsheetId: "1ERT9boBpF16VrVNBSRD6P1hTm6D0IsX16at6R3ZPtBs",
+      kodes: ["MTZ", "MVZ", "MWZ", "MT1", "MV1", "MW1"]
+    },
+    STYLO: {
+      label: "HONDA STYLO",
+      spreadsheetId: "1Sveq5riagQ08sH4YzjIlKJCyrVSGbhc-ZjHWZ1i-Vv4",
+      kodes: ["MFW", "MFV", "MGV", "MGX", "MF1"]
+    }
+    // Contoh motor baru:
+    // VARIO: { label: "HONDA VARIO", spreadsheetId: "ISI_ID_BARU", kodes: ["XXX", "YYY"] },
+  }
 };
-async function ambilSheet(namaSheet) {
-  let idSheet = tipeAktif === "STYLO" ? SPREADSHEET_STYLO : SPREADSHEET_PCX;
-const url = `https://docs.google.com/spreadsheets/d/${idSheet}/gviz/tq?tqx=out:json&sheet=${namaSheet}&headers=0`;
+// ============================================================
+// JANGAN EDIT DARI SINI KE BAWAH, KECUALI MAU NGUBAH TAMPILAN
+// ============================================================
+
+let tipeAktif = "", kodeAktif = "";
+
+async function ambilSheet(spreadsheetId, namaSheet) {
+  // Ambil cuma A:I, 100 baris. headers=0 biar cell gabungan gak bikin kacau
+  const query = encodeURIComponent('select A,B,C,D,E,F,G,H,I limit 100');
+  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=${namaSheet}&headers=0&tq=${query}`;
   const res = await fetch(url);
   const text = await res.text();
   const json = JSON.parse(text.substr(47).slice(0, -2));
-  return json.table.rows.map(r => r.c.map(c => (c && c.v != null ? c.v : ""))).slice(0, 100).map(row => row.slice(0, 9));
+  return json.table.rows.map(r => r.c.map(c => (c && c.v != null ? c.v : "")));
 }
-let tipeAktif="", kodeAktif="";
-async function pilihTipe(tipe){
-  tipeAktif=tipe;
-  document.getElementById('kodeBox').style.display='block';
-  document.getElementById('hasilBox').style.display='none';
-  let kodes = KODES[tipeAktif];
-  let h="";
-  kodes.forEach(k=>{ h+=`<button class="btn btn-kode" onclick="pilihKode(this,'${k}')">${k}</button>`; });
-  document.getElementById('kodeList').innerHTML=h;
+
+function formatAngka(v) {
+  if (typeof v === 'number') return v.toLocaleString('id-ID');
+  return v;
 }
-async function pilihKode(el,kode){
-  kodeAktif=kode;
-  document.querySelectorAll('.btn-kode').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('hasilBox').style.display='block';
-  document.getElementById('judul').innerText = tipeAktif+" - Kode "+kode;
-  document.getElementById('loading').style.display='block';
-  document.getElementById('tabel').innerHTML='';
-  let semua = await ambilSheet(kodeAktif); 
-  let data = { header: semua[0], rows: semua.slice(1) };
-  document.getElementById('loading').style.display='none';
-  let h="<table><tr>";
-  data.header.forEach(c=>{ h+=`<th>${c}</th>`; });
-  h+="</tr>";
-  data.rows.forEach(r=>{
-    h+="<tr>";
-    r.forEach(c=>{
-      let v=c;
-      if(typeof v==='number') v=v.toLocaleString('id-ID');
-      h+=`<td>${v}</td>`;
-    });
-    h+="</tr>";
+
+function renderTipe() {
+  let h = "";
+  for (let key in CONFIG.MOTORS) {
+    h += `<button class="btn btn-tipe" onclick="pilihTipe('${key}')">${CONFIG.MOTORS[key].label}</button>`;
+  }
+  document.getElementById('tipeList').innerHTML = h;
+}
+
+function pilihTipe(tipe) {
+  tipeAktif = tipe;
+  document.querySelectorAll('.btn-tipe').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('kodeBox').style.display = 'block';
+  document.getElementById('hasilBox').style.display = 'none';
+  let h = "";
+  CONFIG.MOTORS[tipe].kodes.forEach(k => {
+    h += `<button class="btn btn-kode" onclick="pilihKode(this,'${k}')">${k}</button>`;
   });
-  h+="</table>";
-  document.getElementById('tabel').innerHTML=h;
+  document.getElementById('kodeList').innerHTML = h;
 }
-  document.querySelectorAll('.btn-pcx, .btn-stylo').forEach(b=>b.addEventListener('click',()=>{
-document.querySelectorAll('.btn-pcx, .btn-stylo').forEach(x=>x.classList.remove('active'));
-b.classList.add('active');
-}));
+
+async function pilihKode(el, kode) {
+  kodeAktif = kode;
+  document.querySelectorAll('.btn-kode').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('hasilBox').style.display = 'block';
+  document.getElementById('judul').innerText = tipeAktif + " - Kode " + kode;
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('tabel').innerHTML = '';
+  document.getElementById('infoBerlaku').innerText = '';
+
+  try {
+    let semua = await ambilSheet(CONFIG.MOTORS[tipeAktif].spreadsheetId, kode);
+
+    // Cari info BERLAKU di baris atas Sheet, buat ditampilin di atas tabel
+    let berlaku = semua.find(r => r.join(" ").toUpperCase().includes("BERLAKU"));
+    if (berlaku) document.getElementById('infoBerlaku').innerText = berlaku.filter(x => x !== "").join(" : ");
+
+    // Cari baris yang ada kata "TYPE", itu patokan awal data. Lewatin 2 baris header UANG/MUKA nya
+    let start = semua.findIndex(r => r[0] && r[0].toString().toUpperCase().includes('TYPE'));
+    if (start === -1) start = 0;
+    let rows = semua.slice(start + 2).filter(r => r.some(c => c !== "" && c != null));
+
+    document.getElementById('loading').style.display = 'none';
+    let h = "<table><tr>";
+    CONFIG.HEADER.forEach(c => { h += `<th>${c}</th>`; });
+    h += "</tr>";
+    rows.forEach(r => {
+      h += "<tr>";
+      for (let i = 0; i < 9; i++) {
+        h += `<td>${formatAngka(r[i] ?? "")}</td>`;
+      }
+      h += "</tr>";
+    });
+    h += "</table>";
+    document.getElementById('tabel').innerHTML = h;
+  } catch (e) {
+    document.getElementById('loading').innerText = 'Gagal load. Cek nama Sheet / Share Spreadsheet-nya.';
+  }
+}
+
+renderTipe();
 </script>
 </body>
 </html>
