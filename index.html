@@ -75,7 +75,6 @@ const CONFIG = {
   "HONDA BEAT": ["MJ2","MK2","ML2","MLY","MLV","MMV"],
   SCOOPY:      ["MRT","MSP-MSW"]
 };
-// INI TRIKNYA BRO - KEY TETEP PCX, TAMPILAN JADI PCX 160
 const LABELS = { PCX: "PCX 160" };
 function label(m){ return LABELS[m] || m; }
 let current = "PCX", activeCode = null;
@@ -115,7 +114,7 @@ async function setCode(c){
     }catch(e){ cache[c] = [["Gagal ambil "+c+" - Cek nama Sheet / Izin Spreadsheet"]]; }
   }
   const rows = cache[c];
- const table = `<div class="bungkus-luar"><div class="table-wrap"><table>${rows.map(r=>`<tr>${r.map(cell=>`<td>${cell}</td>`).join("")}</tr>`).join("")}</table></div><div class="bayangan-kanan"></div></div>`;${rows.map(r=>`<tr>${r.map(cell=>`<td>${cell}</td>`).join("")}</tr>`).join("")}</table></div>`;
+  const table = `<div class="bungkus-luar"><div class="table-wrap"><table>${rows.map(r=>`<tr>${r.map(cell=>`<td>${cell}</td>`).join("")}</tr>`).join("")}</table></div><div class="bayangan-kanan"></div></div>`;
   document.getElementById("list").innerHTML = `<div class="card"><h3>[${c}] ${label(current)} - PRICE LIST</h3>${table}</div>`;
 }
 function bukaPopup(){
