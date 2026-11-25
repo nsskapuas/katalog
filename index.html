@@ -11,146 +11,116 @@ body{font-family:Arial,sans-serif;margin:0;background:#f4f4f4}
 .btn{padding:12px 18px;border:0;border-radius:20px;font-weight:bold;cursor:pointer;margin:4px}
 .btn-tipe,.btn-kode{background:#eee;color:#222;border:1px solid #ddd}
 .btn-tipe.active,.btn-kode.active{background:#CC0000;color:#fff;border-color:#CC0000}
-.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #ddd;border-radius:8px;max-width:100%}
+.table-wrap{overflow-x:auto;border:1px solid #ddd;border-radius:8px;max-width:100%}
 table{border-collapse:collapse;width:100%;min-width:520px}
 th,td{border:1px solid #ddd;padding:7px 6px;text-align:center;white-space:nowrap;font-size:13px}
-th{background:#CC0000;color:#fff;position:sticky;top:0;z-index:2}
+th{background:#CC0000;color:#fff}
 th:first-child,td:first-child{text-align:left;min-width:110px}
 tr:nth-child(even) td{background:#fff5f5}
 .swipe-hint{font-size:12px;color:#888;text-align:center;margin:6px 0 0}
 #loading{text-align:center;padding:20px}
 .wa{display:block;text-align:center;background:#25D366;color:#fff;padding:13px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:12px}
-@media(max-width:480px){.wrap{padding:10px}.card{padding:12px}th,td{font-size:12px;padding:6px 5px}}
 </style>
 </head>
 <body>
-<div class="header"><h1>🏍️ DAFTAR HARGA PCX & STYLO</h1><div>Harga OTR - DP - Angsuran</div></div>
+<div class="header"><h1>DAFTAR HARGA PCX & STYLO</h1><div>Harga OTR - DP - Angsuran</div></div>
 <div class="wrap">
-  <div class="card">
-    <b>1. Pilih Tipe Motor:</b><br><br>
-    <div id="tipeList"></div>
-  </div>
-  <div class="card" id="kodeBox" style="display:none">
-    <b>2. Pilih Kode:</b><br><br><div id="kodeList"></div>
-  </div>
+  <div class="card"><b>1. Pilih Tipe Motor:</b><br><br><div id="tipeList"></div></div>
+  <div class="card" id="kodeBox" style="display:none"><b>2. Pilih Kode:</b><br><br><div id="kodeList"></div></div>
   <div class="card" id="hasilBox" style="display:none">
     <h3 id="judul" style="margin:0 0 4px"></h3>
     <div id="infoBerlaku" style="font-size:13px;color:#666;margin-bottom:10px"></div>
     <div id="loading">Loading...</div>
     <div class="table-wrap"><div id="tabel"></div></div>
-    <div class="swipe-hint">👈 Geser tabel ke kiri untuk lihat angsuran lainnya 👉</div>
-    <a class="wa" href="https://wa.me/6285183349948?text=Halo%20bang,%20harga%20kode%20sudah%20update:" target="_blank">💬 Update PL tanya admin/wa</a>
+    <div class="swipe-hint">Geser tabel ke kiri untuk lihat angsuran lainnya</div>
+    <a class="wa" href="https://wa.me/6285183349948" target="_blank">Update PL tanya admin/wa</a>
   </div>
 </div>
 <script>
-// ============================================================
-// ★★★ CUMA EDIT DI SINI AJA BRO ★★★
-// ============================================================
 const CONFIG = {
   HEADER: ["Type", "Uang Muka", "Cukup Bayar", "6", "12", "18", "24", "30*", "36"],
   MOTORS: {
-    PCX: {
-      label: "HONDA PCX",
-      spreadsheetId: "1ERT9boBpF16VrVNBSRD6P1hTm6D0IsX16at6R3ZPtBs",
-      kodes: ["MTZ", "MVZ", "MWZ", "MT1", "MV1", "MW1"]
-    },
-    STYLO: {
-      label: "HONDA STYLO",
-      spreadsheetId: "1Sveq5riagQ08sH4YzjIlKJCyrVSGbhc-ZjHWZ1i-Vv4",
-      kodes: ["MFW", "MFV", "MGV", "MGX", "MF1"]
-    }
+    PCX: { label: "HONDA PCX", spreadsheetId: "1ERT9boBpF16VrVNBSRD6P1hTm6D0IsX16at6R3ZPtBs", kodes: ["MTZ", "MVZ", "MWZ", "MT1", "MV1", "MW1"] },
+    STYLO: { label: "HONDA STYLO", spreadsheetId: "1Sveq5riagQ08sH4YzjIlKJCyrVSGbhc-ZjHWZ1i-Vv4", kodes: ["MFW", "MFV", "MGV", "MGX", "MF1"] }
   }
 };
-// ============================================================
-// JANGAN EDIT DARI SINI KE BAWAH
-// ============================================================
-
 let tipeAktif = "", kodeAktif = "";
-
+function txt(v){ return v == null ? "" : String(v); }
 async function ambilSheet(spreadsheetId, namaSheet) {
   const query = encodeURIComponent('select A,B,C,D,E,F,G,H,I limit 100');
-  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=${namaSheet}&headers=0&tq=${query}`;
+  const url = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId + '/gviz/tq?tqx=out:json&sheet=' + namaSheet + '&headers=0&tq=' + query;
   const res = await fetch(url);
   const text = await res.text();
   const json = JSON.parse(text.substr(47).slice(0, -2));
-  // Pakai c.f dulu biar Rp31.464.000 dll kebaca apa adanya dari Sheet
-  return json.table.rows.map(r => r.c.map(c => (c && c.f != null ? c.f : (c && c.v != null ? c.v : ""))));
+  return json.table.rows.map(function(r){
+    return r.c.map(function(c){ if(c && c.f != null) return c.f; if(c && c.v != null) return c.v; return ""; });
+  });
 }
-
-function formatAngka(v) {
-  if (typeof v === 'number') return v.toLocaleString('id-ID');
-  return v;
-}
-
-function renderTipe() {
+function formatAngka(v){ if(typeof v === 'number') return v.toLocaleString('id-ID'); return v; }
+function renderTipe(){
   let h = "";
-  for (let key in CONFIG.MOTORS) {
-    h += `<button class="btn btn-tipe" onclick="pilihTipe('${key}')">${CONFIG.MOTORS[key].label}</button>`;
-  }
+  for(let key in CONFIG.MOTORS){ h += '<button class="btn btn-tipe" onclick="pilihTipe(\''+key+'\')">'+CONFIG.MOTORS[key].label+'</button>'; }
   document.getElementById('tipeList').innerHTML = h;
 }
-
-function pilihTipe(tipe) {
+function pilihTipe(tipe){
   tipeAktif = tipe;
-  document.querySelectorAll('.btn-tipe').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.btn-tipe').forEach(function(b){ b.classList.remove('active'); });
   event.target.classList.add('active');
   document.getElementById('kodeBox').style.display = 'block';
   document.getElementById('hasilBox').style.display = 'none';
   let h = "";
-  CONFIG.MOTORS[tipe].kodes.forEach(k => {
-    h += `<button class="btn btn-kode" onclick="pilihKode(this,'${k}')">${k}</button>`;
-  });
+  CONFIG.MOTORS[tipe].kodes.forEach(function(k){ h += '<button class="btn btn-kode" onclick="pilihKode(this,\''+k+'\')">'+k+'</button>'; });
   document.getElementById('kodeList').innerHTML = h;
 }
-
-async function pilihKode(el, kode) {
+async function pilihKode(el, kode){
   kodeAktif = kode;
-  document.querySelectorAll('.btn-kode').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.btn-kode').forEach(function(b){ b.classList.remove('active'); });
   el.classList.add('active');
   document.getElementById('hasilBox').style.display = 'block';
   document.getElementById('judul').innerText = tipeAktif + " - Kode " + kode;
   document.getElementById('loading').style.display = 'block';
+  document.getElementById('loading').innerText = 'Loading...';
   document.getElementById('tabel').innerHTML = '';
   document.getElementById('infoBerlaku').innerText = '';
-
-  try {
+  try{
     let semua = await ambilSheet(CONFIG.MOTORS[tipeAktif].spreadsheetId, kode);
-
-let idxBerlaku = semua.findIndex(r => (r[0]||"").toString().toUpperCase().includes("BERLAKU"));
-let berlaku = idxBerlaku !== -1 ? (semua[idxBerlaku][0] + " " + semua[idxBerlaku+1][0]) : "";
-let idxTipe = semua.findIndex(r => (r[0]||"").toString().includes("CBS") || (r[0]||"").toString().includes("ABS"));
-let tipeMotor = idxTipe !== -1 ? semua[idxTipe][0] : "";
-let otr = idxTipe !== -1 ? semua[idxTipe+1][0] : "";
-let idxSubsidi = semua.findIndex(r => (r[0]||"").toString().toUpperCase().includes("SUBSIDI"));
-let subsidiVal = idxSubsidi !== -1 ? semua[idxSubsidi+1][0] : "";
-
-    document.getElementById('infoBerlaku').innerText = berlaku + " | " + tipeMotor + " | OTR " + otr + " | " + subsidiLabel + " " + subsidiVal;
-
-   // Ambil semua baris yang kolom B-nya angka (3.400.000 dll), gak peduli baris berapa
-let rows = semua.filter(r => {
-  let b = (r[1]||"").toString().replace(/\./g,"");
-  return !isNaN(b) && b !== "" && Number(b) > 100000;
-});
-
+    let idxBerlaku = -1, idxTipe = -1, idxSubsidi = -1;
+    for(let i=0;i<semua.length;i++){
+      let a = txt(semua[i][0]).toUpperCase();
+      if(idxBerlaku === -1 && a.indexOf("BERLAKU") !== -1) idxBerlaku = i;
+      if(idxTipe === -1 && (a.indexOf("PCX") !== -1 || a.indexOf("STYLO") !== -1)) idxTipe = i;
+      if(idxSubsidi === -1 && a.indexOf("SUBSIDI") !== -1) idxSubsidi = i;
+    }
+    let berlaku = "";
+    if(idxBerlaku !== -1){
+      let a1 = semua[idxBerlaku] ? txt(semua[idxBerlaku][0]) : "";
+      let a2 = semua[idxBerlaku+1] ? txt(semua[idxBerlaku+1][0]) : "";
+      berlaku = a1 + " " + a2;
+    }
+    let tipeMotor = idxTipe !== -1 ? txt(semua[idxTipe][0]) : "";
+    let otr = (idxTipe !== -1 && semua[idxTipe+1]) ? txt(semua[idxTipe+1][0]) : "";
+    let subsidiVal = (idxSubsidi !== -1 && semua[idxSubsidi+1]) ? txt(semua[idxSubsidi+1][0]) : "";
     document.getElementById('infoBerlaku').innerText = berlaku + " | " + tipeMotor + " | OTR " + otr + " | SUBSIDI " + subsidiVal;
+    let rows = [];
+    for(let i=0;i<semua.length;i++){
+      let b = txt(semua[i][1]).replace(/\./g,"").replace(/,/g,"").replace(/Rp/g,"").replace(/ /g,"");
+      if(b !== "" && !isNaN(Number(b)) && Number(b) > 100000) rows.push(semua[i]);
+    }
+    document.getElementById('loading').style.display = 'none';
     let h = "<table><tr>";
-    CONFIG.HEADER.forEach(c => { h += `<th>${c}</th>`; });
+    CONFIG.HEADER.forEach(function(c){ h += "<th>"+c+"</th>"; });
     h += "</tr>";
-    rows.forEach((r, idx) => {
-      h += "<tr>";
-      h += `<td>${idx === 0 ? tipeMotor : ""}</td>`;
-      for (let i = 1; i < 9; i++) {
-        h += `<td>${formatAngka(r[i] ?? "")}</td>`;
-      }
+    rows.forEach(function(r, idx){
+      h += "<tr><td>" + (idx === 0 ? tipeMotor : "") + "</td>";
+      for(let i=1;i<9;i++){ h += "<td>" + formatAngka(r[i] == null ? "" : r[i]) + "</td>"; }
       h += "</tr>";
     });
     h += "</table>";
     document.getElementById('tabel').innerHTML = h;
-  } catch (e) {
-    document.getElementById('loading').innerText = 'Gagal load. Cek nama Sheet / Share Spreadsheet-nya.';
+  }catch(e){
+    document.getElementById('loading').innerText = 'Error: ' + e.message;
   }
 }
-
 renderTipe();
 </script>
 </body>
