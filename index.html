@@ -21,11 +21,22 @@
   .chips button.active{background:#111;color:#fff;border-color:#111}
   .card{background:#fff;border-radius:16px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden}
   .card h3{margin:0 0 10px;font-size:18px;color:#E60012;border-bottom:2px solid #E60012;padding-bottom:8px}
-  table{width:100%;border-collapse:collapse;font-size:13px;display:block;overflow-x:auto}
+
+  /* === FREEZE TENOR DI SINI === */
+  .table-wrap{max-height:65vh;overflow:auto;border:1px solid #eee;border-radius:10px}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   th,td{border-bottom:1px solid #eee;padding:8px 8px;text-align:left;white-space:nowrap}
   tr:nth-child(even) td{background:#fafafa}
   td{color:#222}
-  tr:first-child td{font-weight:900;font-size:15px}
+  /* Baris pertama = Tenor, dibikin nempel */
+  tr:first-child td{
+    position:sticky;top:0;z-index:5;
+    background:#fff !important;
+    font-weight:900;font-size:15px;
+    border-bottom:2px solid #E60012;
+    box-shadow:0 2px 4px rgba(0,0,0,.08);
+  }
+
   .empty{text-align:center;padding:50px 20px;color:#999;background:#fff;border-radius:16px;line-height:1.6}
   .loading{text-align:center;padding:30px;color:#777}
   .footer{text-align:center;font-size:11px;color:#aaa;padding:12px}
@@ -85,7 +96,7 @@ async function setCode(c){
     }catch(e){ cache[c] = [["Gagal ambil "+c+" - Cek nama Sheet / Izin Spreadsheet"]]; }
   }
   const rows = cache[c];
-  const table = `<table>${rows.map(r=>`<tr>${r.map(cell=>`<td>${cell}</td>`).join("")}</tr>`).join("")}</table>`;
+  const table = `<div class="table-wrap"><table>${rows.map(r=>`<tr>${r.map(cell=>`<td>${cell}</td>`).join("")}</tr>`).join("")}</table></div>`;
   document.getElementById("list").innerHTML = `<div class="card"><h3>[${c}] ${current} - PRICE LIST</h3>${table}</div>`;
 }
 renderMotorTabs(); renderChips();
