@@ -12,15 +12,11 @@ body{font-family:Arial,sans-serif;margin:0;background:#f4f4f4}
 .btn-tipe,.btn-kode{background:#eee;color:#222;border:1px solid #ddd}
 .btn-tipe.active,.btn-kode.active{background:#CC0000;color:#fff}
 .table-wrap{overflow-x:auto;border:1px solid #ddd;border-radius:8px}
-table{border-collapse:collapse;width:100%;min-width:520px}
+table{border-collapse:collapse;width:100%;min-width:600px}
 th,td{border:1px solid #ddd;padding:7px 6px;text-align:center;white-space:nowrap;font-size:13px}
-th{background:#CC0000;color:#fff}
-th:first-child,td:first-child{text-align:left;min-width:130px}
-tr:nth-child(even) td{background:#fff5f5}
+td:first-child{text-align:left}
 .swipe-hint{font-size:12px;color:#888;text-align:center;margin:6px 0 0}
 .wa{display:block;text-align:center;background:#25D366;color:#fff;padding:13px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:12px}
-.info{background:#fff5f5;border:1px solid #ffcccc;border-radius:10px;padding:12px;margin-bottom:12px;font-size:14px;line-height:1.7}
-.info b{color:#CC0000}
 </style>
 </head>
 <body>
@@ -30,7 +26,6 @@ tr:nth-child(even) td{background:#fff5f5}
   <div class="card" id="kodeBox" style="display:none"><b>2. Pilih Kode:</b><br><br><div id="kodeList"></div></div>
   <div class="card" id="hasilBox" style="display:none">
     <div id="loading">Loading...</div>
-    <div id="infoBox"></div>
     <div class="table-wrap"><div id="tabel"></div></div>
     <div class="swipe-hint">Geser tabel ke kiri untuk lihat angsuran lainnya</div>
     <a class="wa" href="https://wa.me/6285183349948" target="_blank">Update PL tanya admin/wa</a>
@@ -46,12 +41,11 @@ const CONFIG = {
 let tipeAktif = "";
 function txt(v){ return v == null ? "" : String(v); }
 
-// === PAKAI JSON, BUKAN CSV LAGI ===
+// Ambil Sheet mentah A:I sampai baris 100, pake JSON gviz
 async function ambilSheet(id, sheet) {
-  const url = 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(sheet);
+  const url = 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(sheet) + '&range=A1:I100';
   const res = await fetch(url);
   let text = await res.text();
-  // Potong "google.visualization.Query.setResponse(...);"
   let start = text.indexOf("{");
   let end = text.lastIndexOf("}");
   let json = JSON.parse(text.substring(start, end+1));
@@ -59,11 +53,9 @@ async function ambilSheet(id, sheet) {
   return rows.map(function(r){
     let cells = r.c || [];
     let out = [];
-    for(let i=0;i<cells.length;i++){
+    for(let i=0;i<9;i++){
       let cell = cells[i];
       if(!cell){ out.push(""); continue; }
-      // f = tampilan asli di Sheet (misal "Rp31.464.000", "2.000.000")
-      // v = nilai mentah (angka)
       if(cell.f != null && cell.f !== "") out.push(cell.f);
       else if(cell.v != null) out.push(cell.v);
       else out.push("");
@@ -94,99 +86,21 @@ async function pilihKode(el, kode){
   document.getElementById('loading').style.display = 'block';
   document.getElementById('loading').innerText = 'Loading...';
   document.getElementById('tabel').innerHTML = '';
-  document.getElementById('infoBox').innerHTML = '';
   try{
     let semua = await ambilSheet(CONFIG.MOTORS[tipeAktif].spreadsheetId, kode);
-
-    // ===== CARI HEADER DARI JSON, JAUH LEBIH AKURAT =====
-    // JSON gak geser, jadi sel B, C, D persis kayak di Sheet
-    let idxHead = -1;
-    for(let i=0;i<semua.length;i++){
-      let b = txt(semua[i][1]).toUpperCase().replace(":","").trim();
-      let c = txt(semua[i][2]).toUpperCase().trim();
-      // Baris header tabel: B=TYPE, C=UANG
-      // Baris "Type : STYLO..." ke-skip karena C nya angka, bukan UANG
-      if(b === "TYPE" && c.indexOf("UANG") !== -1){ idxHead = i; break; }
-    }
-    if(idxHead === -1) idxHead = 4;
-
-    let r1 = semua[idxHead] || [];
-    let r2 = semua[idxHead+1] || [];
-
-    // HEADER dari Sheet
-    let header = [];
-    header.push(txt(r1[1]).replace(":","").trim());
-    header.push((txt(r1[2]) + " " + txt(r2[2])).trim());
-    header.push((txt(r1[3]) + " " + txt(r2[3])).trim());
-    for(let c=4;c<r1.length;c++){
-      let v = txt(r1[c]).trim();
-      if(v !== "") header.push(v);
-    }
-
-    // INFO ATAS: cari sel yang ada AREA / PROGRAM / BERLAKU, per sel
-    let area = "", program = "", berlaku = "";
-    for(let i=0;i<semua.length;i++){
-      for(let c=0;c<semua[i].length;c++){
-        let v = txt(semua[i][c]);
-        let up = v.toUpperCase();
-        if(up.indexOf("AREA") !== -1){
-          // Ambil sel ini + sel sebelahnya, biar "K A P U A S" keambil utuh
-          let gab = v + " " + txt(semua[i][c+1]) + " " + txt(semua[i][c+2]);
-          // Buang kata AREA dan PROGRAM dari gabungan itu
-          let s = gab.replace(/AREA/gi,"").replace(/:/g,"").replace(/PROGRAM.*/gi,"").trim();
-          // "K A P U A S" -> "KAPUAS" (buang spasi antar huruf 1 karakter)
-          s = s.replace(/\b([A-Z])\s+(?=[A-Z]\b)/g,"$1").replace(/\s+/g," ").trim();
-          if(s !== "") area = s;
-        }
-        if(up.indexOf("PROGRAM") !== -1 || up.indexOf("PROG.") !== -1){
-          let s = v.replace(/PROGRAM/gi,"").replace(/PROG\./gi,"").replace(/:/g,"").trim();
-          let s2 = txt(semua[i][c+1]).trim();
-          if(s2 !== "" && s2.toUpperCase().indexOf("BERLAKU") === -1) s += (s ? " " : "") + s2;
-          if(s !== "") program = s;
-        }
-        if(up.indexOf("BERLAKU") !== -1){
-          let s = v.replace(/BERLAKU/gi,"").replace(/:/g,"").trim();
-          if(s === "") s = txt(semua[i][c+1]).trim();
-          if(s !== "") berlaku = s;
-        }
-      }
-    }
-
-    // TIPE + OTR
-    let tipeMotor = "", otr = "";
-    for(let i=0;i<semua.length;i++){
-      let b = txt(semua[i][1]);
-      let c = txt(semua[i][2]);
-      if(b.indexOf("Rp") !== -1 && c.toUpperCase().indexOf("SUBSIDI") !== -1) otr = b;
-      if(tipeMotor === "" && (b.toUpperCase().indexOf("PCX") !== -1 || b.toUpperCase().indexOf("STYLO") !== -1)){
-        let numC = Number(txt(c).replace(/\./g,"").replace(/,/g,"").replace(/Rp/g,"").trim());
-        if(c !== "" && !isNaN(numC) && numC > 100000) tipeMotor = b;
-      }
-    }
-
-    // DATA: setelah header, yang kolom C angka DP
-    let rows = [];
-    for(let i=idxHead+2;i<semua.length;i++){
-      let b = txt(semua[i][2]).replace(/\./g,"").replace(/,/g,"").replace(/Rp/g,"").replace(/ /g,"");
-      if(b !== "" && !isNaN(Number(b)) && Number(b) > 100000) rows.push(semua[i]);
-    }
-
     document.getElementById('loading').style.display = 'none';
-    let info = '<div class="info">';
-    if(tipeMotor) info += '<b>' + tipeMotor + '</b><br>';
-    if(otr) info += 'OTR: <b>' + otr + '</b><br>';
-    if(area) info += 'Area: ' + area + ' &nbsp;|&nbsp; ';
-    if(berlaku) info += 'Berlaku: ' + berlaku + ' &nbsp;|&nbsp; ';
-    if(program) info += 'Program: ' + program;
-    info += '</div>';
-    document.getElementById('infoBox').innerHTML = info;
 
-    let h = "<table><tr>";
-    header.forEach(function(c){ h += "<th>"+c+"</th>"; });
-    h += "</tr>";
-    rows.forEach(function(r, idx){
-      h += "<tr><td>" + (idx === 0 ? tipeMotor : "") + "</td>";
-      for(let i=2;i<2+header.length-1;i++){ h += "<td>" + formatAngka(r[i] == null ? "" : r[i]) + "</td>"; }
+    // Tampilkan mentah A:I 1-100, apa adanya dari Sheet
+    // Buang baris yang kosong semua biar gak kepanjangan
+    let h = "<table>";
+    semua.forEach(function(r){
+      let kosongSemua = true;
+      for(let i=0;i<r.length;i++){ if(txt(r[i]).trim() !== "") kosongSemua = false; }
+      if(kosongSemua) return;
+      h += "<tr>";
+      for(let i=0;i<r.length;i++){
+        h += "<td>" + formatAngka(r[i]) + "</td>";
+      }
       h += "</tr>";
     });
     h += "</table>";
