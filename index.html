@@ -28,8 +28,6 @@ tr:nth-child(even) td{background:#fff5f5}
   <div class="card"><b>1. Pilih Tipe Motor:</b><br><br><div id="tipeList"></div></div>
   <div class="card" id="kodeBox" style="display:none"><b>2. Pilih Kode:</b><br><br><div id="kodeList"></div></div>
   <div class="card" id="hasilBox" style="display:none">
-    <h3 id="judul" style="margin:0 0 4px"></h3>
-    <div id="infoBerlaku" style="font-size:13px;color:#666;margin-bottom:10px"></div>
     <div id="loading">Loading...</div>
     <div class="table-wrap"><div id="tabel"></div></div>
     <div class="swipe-hint">Geser tabel ke kiri untuk lihat angsuran lainnya</div>
@@ -43,10 +41,10 @@ const CONFIG = {
     STYLO: { label: "HONDA STYLO", spreadsheetId: "1Sveq5riagQ08sH4YzjIlKJCyrVSGbhc-ZjHWZ1i-Vv4", kodes: ["MFW", "MFV", "MGV", "MGX", "MF1"] }
   }
 };
-let tipeAktif = "", kodeAktif = "";
+let tipeAktif = "";
 function txt(v){ return v == null ? "" : String(v); }
 async function ambilSheet(spreadsheetId, namaSheet) {
-  const url = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId + '/export?format=csv&sheet=' + encodeURIComponent(namaSheet);
+  const url = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(namaSheet);
   const res = await fetch(url);
   const text = await res.text();
   let rows = [];
@@ -86,35 +84,21 @@ function pilihTipe(tipe){
   document.getElementById('kodeList').innerHTML = h;
 }
 async function pilihKode(el, kode){
-  kodeAktif = kode;
   document.querySelectorAll('.btn-kode').forEach(function(b){ b.classList.remove('active'); });
   el.classList.add('active');
   document.getElementById('hasilBox').style.display = 'block';
-  document.getElementById('judul').innerText = tipeAktif + " - Kode " + kode;
   document.getElementById('loading').style.display = 'block';
   document.getElementById('loading').innerText = 'Loading...';
   document.getElementById('tabel').innerHTML = '';
-  document.getElementById('infoBerlaku').innerText = '';
   try{
     let semua = await ambilSheet(CONFIG.MOTORS[tipeAktif].spreadsheetId, kode);
-    let idxBerlaku = -1, idxTipe = -1, idxSubsidi = -1, idxHead = -1;
+    let idxTipe = -1, idxHead = -1;
     for(let i=0;i<semua.length;i++){
       let a = txt(semua[i][0]).toUpperCase();
-      if(idxBerlaku === -1 && a.indexOf("BERLAKU") !== -1) idxBerlaku = i;
       if(idxTipe === -1 && (a.indexOf("PCX") !== -1 || a.indexOf("STYLO") !== -1)) idxTipe = i;
-      if(idxSubsidi === -1 && a.indexOf("SUBSIDI") !== -1) idxSubsidi = i;
       if(idxHead === -1 && a.indexOf("TYPE") !== -1) idxHead = i;
     }
-    let berlaku = "";
-    if(idxBerlaku !== -1){
-      let a1 = semua[idxBerlaku] ? txt(semua[idxBerlaku][0]) : "";
-      let a2 = semua[idxBerlaku+1] ? txt(semua[idxBerlaku+1][0]) : "";
-      berlaku = a1 + " " + a2;
-    }
     let tipeMotor = idxTipe !== -1 ? txt(semua[idxTipe][0]) : "";
-    let otr = (idxTipe !== -1 && semua[idxTipe+1]) ? txt(semua[idxTipe+1][0]) : "";
-    let subsidiVal = (idxSubsidi !== -1 && semua[idxSubsidi+1]) ? txt(semua[idxSubsidi+1][0]) : "";
-    document.getElementById('infoBerlaku').innerText = berlaku + " | " + tipeMotor + " | OTR " + otr + " | SUBSIDI " + subsidiVal;
     let headerDinamis = ["Type", "Uang Muka", "Cukup Bayar", "6", "12", "18", "24", "30*", "36"];
     if(idxHead !== -1 && semua[idxHead+1]){
       let r1 = semua[idxHead];
