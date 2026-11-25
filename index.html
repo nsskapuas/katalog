@@ -10,8 +10,9 @@
   .header h1{margin:0;font-size:24px;letter-spacing:1px}
   .header p{margin:4px 0 0;font-size:12px;opacity:.9}
   .wrap{padding:12px}
-  .tabs{display:flex;gap:8px;margin-bottom:12px}
-  .tabs button{flex:1;padding:13px;border:none;border-radius:12px;font-weight:900;font-size:16px;cursor:pointer;background:#fff;color:#333;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+  .tabs{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button{flex:0 0 auto;padding:13px 18px;border:none;border-radius:12px;font-weight:900;font-size:15px;cursor:pointer;background:#fff;color:#333;box-shadow:0 2px 6px rgba(0,0,0,.08);white-space:nowrap}
   .tabs button.active{background:#E60012;color:#fff}
   .chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
   .chips button{padding:9px 16px;border:1px solid #ddd;background:#fff;border-radius:20px;font-weight:800;cursor:pointer;font-size:14px}
@@ -22,7 +23,6 @@
   th,td{border-bottom:1px solid #eee;padding:8px 8px;text-align:left;white-space:nowrap}
   tr:nth-child(even) td{background:#fafafa}
   td{color:#222}
-  /* Baris pertama yang isinya judul brosur bikin tebel */
   tr:first-child td{font-weight:900;font-size:15px}
   .empty{text-align:center;padding:50px 20px;color:#999;background:#fff;border-radius:16px;line-height:1.6}
   .loading{text-align:center;padding:30px;color:#777}
@@ -32,30 +32,32 @@
 <body>
 <div class="header"><h1>PRICE LIST HONDA</h1><p>AREA: KAPUAS • Update Otomatis dari Spreadsheet</p></div>
 <div class="wrap">
-<div class="tabs">
-  <button id="btnStylo" class="active" onclick="switchMotor('STYLO')">STYLO</button>
-  <button id="btnPcx" onclick="switchMotor('PCX')">PCX</button>
-</div>
+<div class="tabs" id="motorTabs"></div>
 <div class="chips" id="chips"></div>
-<div id="list"><div class="empty">👆 Silahkan pilih kode di atas dulu<br><small>Contoh: MFW, MFV, MGV...</small></div></div>
+<div id="list"><div class="empty">👆 Silahkan pilih kode di atas dulu<br><small>Contoh: MTZ, MFW, MYA...</small></div></div>
 <div class="footer">Honda Kapuas - Harga dapat berubah sewaktu-waktu</div>
 </div>
 <script>
+const SHEET_ID = "1gs1mlan-b86O2ZyCiHLzsxvo8tRdiDuu9SXXShpJLBY";
 const CONFIG = {
-  STYLO: { id: "1Sveq5riagQ08sH4YzjIlKJCyrVSGbhc-ZjHWZ1i-Vv4", tabs: ["MFW","MFV","MGV","MGX","MF1"] },
-  PCX:   { id: "1ERT9boBpF16VrVNBSRD6P1hTm6D0IsX16at6R3ZPtBs", tabs: ["MTZ","MVZ","MWZ","MT1","MV1","MW1"] }
+  PCX:       ["MTZ","MVZ","MWZ","MT1","MV1","MW1"],
+  STYLO:     ["MFW","MFV","MGV","MGX","MF1"],
+  "VARIO EVO": ["MYA","MYL","MY0","MZ0"],
+  "VARIO 125": ["ND0","NE0","NF0","NFZ","NFV"],
+  "ADV 160":   ["NA0","NB0","NC0"]
 };
-let current = "STYLO", activeCode = null;
+let current = "PCX", activeCode = null;
 let cache = {};
+function renderMotorTabs(){
+  document.getElementById("motorTabs").innerHTML = Object.keys(CONFIG).map(m=>`<button class="${current==m?"active":""}" onclick="switchMotor('${m}')">${m}</button>`).join("");
+}
 function switchMotor(m){
   current=m; activeCode=null; cache={};
-  document.getElementById("btnStylo").className = m=="STYLO"?"active":"";
-  document.getElementById("btnPcx").className = m=="PCX"?"active":"";
-  renderChips();
-  document.getElementById("list").innerHTML = `<div class="empty">👆 Silahkan pilih kode di atas dulu<br><small>Contoh: ${CONFIG[m].tabs.join(", ")}</small></div>`;
+  renderMotorTabs(); renderChips();
+  document.getElementById("list").innerHTML = `<div class="empty">👆 Silahkan pilih kode di atas dulu<br><small>${CONFIG[m].join(", ")}</small></div>`;
 }
 function renderChips(){
-  const tabs = CONFIG[current].tabs;
+  const tabs = CONFIG[current];
   document.getElementById("chips").innerHTML = tabs.map(t=>`<button class="${activeCode==t?"active":""}" onclick="setCode('${t}')">${t}</button>`).join("");
 }
 async function setCode(c){
@@ -63,7 +65,7 @@ async function setCode(c){
   document.getElementById("list").innerHTML = `<div class="loading">Lagi ngambil ${c}...</div>`;
   if(!cache[c]){
     try{
-      const url = `https://docs.google.com/spreadsheets/d/${CONFIG[current].id}/gviz/tq?tqx=out:json&sheet=${c}`;
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${c}`;
       const res = await fetch(url);
       const text = await res.text();
       const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}')+1));
@@ -78,13 +80,13 @@ async function setCode(c){
       }
       rows = rows.map(r => keepCol.map(col => r[col]||""));
       cache[c] = rows;
-    }catch(e){ cache[c] = [["Gagal ambil "+c]]; }
+    }catch(e){ cache[c] = [["Gagal ambil "+c+" - Cek nama Sheet / Izin Spreadsheet"]]; }
   }
   const rows = cache[c];
   const table = `<table>${rows.map(r=>`<tr>${r.map(cell=>`<td>${cell}</td>`).join("")}</tr>`).join("")}</table>`;
-  document.getElementById("list").innerHTML = `<div class="card"><h3>[${c}] PRICE LIST</h3>${table}</div>`;
+  document.getElementById("list").innerHTML = `<div class="card"><h3>[${c}] ${current} - PRICE LIST</h3>${table}</div>`;
 }
-renderChips();
+renderMotorTabs(); renderChips();
 </script>
 </body>
 </html>
