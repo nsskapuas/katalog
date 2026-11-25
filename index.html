@@ -15,7 +15,7 @@ body{font-family:Arial,sans-serif;margin:0;background:#f4f4f4}
 table{border-collapse:collapse;width:100%;min-width:520px}
 th,td{border:1px solid #ddd;padding:7px 6px;text-align:center;white-space:nowrap;font-size:13px}
 th{background:#CC0000;color:#fff}
-th:first-child,td:first-child{text-align:left;min-width:110px}
+th:first-child,td:first-child{text-align:left;min-width:130px}
 tr:nth-child(even) td{background:#fff5f5}
 .swipe-hint{font-size:12px;color:#888;text-align:center;margin:6px 0 0}
 #loading{text-align:center;padding:20px}
@@ -92,33 +92,18 @@ async function pilihKode(el, kode){
   document.getElementById('tabel').innerHTML = '';
   try{
     let semua = await ambilSheet(CONFIG.MOTORS[tipeAktif].spreadsheetId, kode);
-    let idxTipe = -1, idxHead = -1;
-    for(let i=0;i<semua.length;i++){
-      let a = txt(semua[i][0]).toUpperCase();
-      if(idxTipe === -1 && (a.indexOf("PCX") !== -1 || a.indexOf("STYLO") !== -1)) idxTipe = i;
-      if(idxHead === -1 && a.indexOf("TYPE") !== -1) idxHead = i;
-    }
-    let tipeMotor = idxTipe !== -1 ? txt(semua[idxTipe][0]) : "";
-    let headerDinamis = ["Type", "Uang Muka", "Cukup Bayar", "6", "12", "18", "24", "30*", "36"];
-    if(idxHead !== -1 && semua[idxHead+1]){
-      let r1 = semua[idxHead];
-      let r2 = semua[idxHead+1];
-      headerDinamis = [
-        txt(r1[0]) || "Type",
-        (txt(r1[1]) + " " + txt(r2[1])).trim() || "Uang Muka",
-        (txt(r1[2]) + " " + txt(r2[2])).trim() || "Cukup Bayar",
-        txt(r2[3]) || "6",
-        txt(r2[4]) || "12",
-        txt(r2[5]) || "18",
-        txt(r2[6]) || "24",
-        txt(r2[7]) || "30",
-        txt(r2[8]) || "36"
-      ];
-    }
+    let headerDinamis = ["Type", "Uang Muka", "Cukup Bayar", "6", "12", "18", "24", "30", "36"];
     let rows = [];
+    let tipeMotor = "";
     for(let i=0;i<semua.length;i++){
-      let b = txt(semua[i][1]).replace(/\./g,"").replace(/,/g,"").replace(/Rp/g,"").replace(/ /g,"");
-      if(b !== "" && !isNaN(Number(b)) && Number(b) > 100000) rows.push(semua[i]);
+      let b = txt(semua[i][2]).replace(/\./g,"").replace(/,/g,"").replace(/Rp/g,"").replace(/ /g,"");
+      if(b !== "" && !isNaN(Number(b)) && Number(b) > 100000){
+        rows.push(semua[i]);
+        let t = txt(semua[i][1]);
+        if(tipeMotor === "" && (t.toUpperCase().indexOf("PCX") !== -1 || t.toUpperCase().indexOf("STYLO") !== -1)){
+          tipeMotor = t;
+        }
+      }
     }
     document.getElementById('loading').style.display = 'none';
     let h = "<table><tr>";
@@ -126,7 +111,7 @@ async function pilihKode(el, kode){
     h += "</tr>";
     rows.forEach(function(r, idx){
       h += "<tr><td>" + (idx === 0 ? tipeMotor : "") + "</td>";
-      for(let i=1;i<9;i++){ h += "<td>" + formatAngka(r[i] == null ? "" : r[i]) + "</td>"; }
+      for(let i=2;i<=9;i++){ h += "<td>" + formatAngka(r[i] == null ? "" : r[i]) + "</td>"; }
       h += "</tr>";
     });
     h += "</table>";
