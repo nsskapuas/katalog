@@ -116,19 +116,23 @@ async function pilihKode(el, kode) {
   try {
     let semua = await ambilSheet(CONFIG.MOTORS[tipeAktif].spreadsheetId, kode);
 
-    // Ini semua ngambil dari Sheet lu apa adanya, sesuai foto Sheet lu:
-    let berlaku = (semua[4]?.[0] || "") + " " + (semua[5]?.[0] || ""); // A5 Berlaku + A6 OKT 2026
-    let tipeMotor = semua[7]?.[0] || ""; // A8 STYLO CBS A (MFW)
-    let otr = semua[8]?.[0] || ""; // A9 Rp31.464.000
-    let subsidiLabel = semua[10]?.[0] || ""; // A11 SUBSIDI
-    let subsidiVal = semua[11]?.[0] || ""; // A12 Rp0
+let idxBerlaku = semua.findIndex(r => (r[0]||"").toString().toUpperCase().includes("BERLAKU"));
+let berlaku = idxBerlaku !== -1 ? (semua[idxBerlaku][0] + " " + semua[idxBerlaku+1][0]) : "";
+let idxTipe = semua.findIndex(r => (r[0]||"").toString().includes("CBS") || (r[0]||"").toString().includes("ABS"));
+let tipeMotor = idxTipe !== -1 ? semua[idxTipe][0] : "";
+let otr = idxTipe !== -1 ? semua[idxTipe+1][0] : "";
+let idxSubsidi = semua.findIndex(r => (r[0]||"").toString().toUpperCase().includes("SUBSIDI"));
+let subsidiVal = idxSubsidi !== -1 ? semua[idxSubsidi+1][0] : "";
 
     document.getElementById('infoBerlaku').innerText = berlaku + " | " + tipeMotor + " | OTR " + otr + " | " + subsidiLabel + " " + subsidiVal;
 
-    // Data angka mulai baris 8 (index 7), kolom B sampai I
-    let rows = semua.slice(7).filter(r => r.slice(1).some(c => c !== "" && c != null));
+   // Ambil semua baris yang kolom B-nya angka (3.400.000 dll), gak peduli baris berapa
+let rows = semua.filter(r => {
+  let b = (r[1]||"").toString().replace(/\./g,"");
+  return !isNaN(b) && b !== "" && Number(b) > 100000;
+});
 
-    document.getElementById('loading').style.display = 'none';
+    document.getElementById('infoBerlaku').innerText = berlaku + " | " + tipeMotor + " | OTR " + otr + " | SUBSIDI " + subsidiVal;
     let h = "<table><tr>";
     CONFIG.HEADER.forEach(c => { h += `<th>${c}</th>`; });
     h += "</tr>";
