@@ -21,7 +21,9 @@
   .chips button.active{background:#111;color:#fff;border-color:#111}
   .card{background:#fff;border-radius:16px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden}
   .card h3{margin:0 0 10px;font-size:18px;color:#E60012;border-bottom:2px solid #E60012;padding-bottom:8px}
-  .table-wrap{max-height:65vh;overflow:auto;border:1px solid #eee;border-radius:10px;position:relative;background: linear-gradient(to left, rgba(0,0,0,0.18) 0, transparent 35px) right center / 35px 100% no-repeat, #fff;background-attachment: local, scroll;}
+  .table-wrap{max-height:65vh;overflow:auto;border:1px solid #eee;border-radius:10px;}
+  .bungkus-luar{position:relative;}
+  .bayangan-kanan{position:absolute;top:0;right:0;bottom:0;width:35px;background:linear-gradient(to left, rgba(0,0,0,0.35), transparent);pointer-events:none;z-index:10;border-radius:0 10px 10px 0;}
   table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   th,td{border-bottom:1px solid #eee;padding:8px 8px;text-align:left;white-space:nowrap}
   tr:nth-child(even) td{background:#fafafa}
@@ -113,7 +115,7 @@ async function setCode(c){
     }catch(e){ cache[c] = [["Gagal ambil "+c+" - Cek nama Sheet / Izin Spreadsheet"]]; }
   }
   const rows = cache[c];
-  const table = `<div class="table-wrap"><table>${rows.map(r=>`<tr>${r.map(cell=>`<td>${cell}</td>`).join("")}</tr>`).join("")}</table></div>`;
+ const table = `<div class="bungkus-luar"><div class="table-wrap"><table>${rows.map(r=>`<tr>${r.map(cell=>`<td>${cell}</td>`).join("")}</tr>`).join("")}</table></div><div class="bayangan-kanan"></div></div>`;${rows.map(r=>`<tr>${r.map(cell=>`<td>${cell}</td>`).join("")}</tr>`).join("")}</table></div>`;
   document.getElementById("list").innerHTML = `<div class="card"><h3>[${c}] ${label(current)} - PRICE LIST</h3>${table}</div>`;
 }
 function bukaPopup(){
