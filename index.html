@@ -43,7 +43,7 @@ function txt(v){ return v == null ? "" : String(v); }
 
 // Ambil Sheet mentah A:I sampai baris 100, pake JSON gviz
 async function ambilSheet(id, sheet) {
-  const url = 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(sheet) + '&range=A1:I100';
+  const url = 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&headers=0&sheet=' + encodeURIComponent(sheet) + '&range=A1:I100';
   const res = await fetch(url);
   let text = await res.text();
   let start = text.indexOf("{");
