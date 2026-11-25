@@ -55,7 +55,7 @@ const KODES = {
 };
 async function ambilSheet(namaSheet) {
   let idSheet = tipeAktif === "STYLO" ? SPREADSHEET_STYLO : SPREADSHEET_PCX;
-const url = `https://docs.google.com/spreadsheets/d/${idSheet}/gviz/tq?tqx=out:json&sheet=${namaSheet}&headers=1`;
+const url = `https://docs.google.com/spreadsheets/d/${idSheet}/gviz/tq?tqx=out:json&sheet=${namaSheet}&headers=0`;
   const res = await fetch(url);
   const text = await res.text();
   const json = JSON.parse(text.substr(47).slice(0, -2));
