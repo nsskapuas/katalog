@@ -11,13 +11,15 @@
   .tabs button{flex:1;padding:12px;border:none;border-radius:10px;font-weight:800;font-size:16px;cursor:pointer;background:#ddd}
   .tabs button.active{background:#d60000;color:#fff}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-  .chips button{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:20px;font-weight:700;cursor:pointer}
+  .chips button{padding:8px 14px;border:1px solid #ddd;background:#fff;border-radius:20px;font-weight:700;cursor:pointer}
   .chips button.active{background:#111;color:#fff}
   .card{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden}
   .card h3{margin:0 0 10px;font-size:18px}
   table{width:100%;border-collapse:collapse;font-size:13px;display:block;overflow-x:auto}
-  th,td{border:1px solid #eee;padding:6px 8px;text-align:left;white-space:nowrap}
-  td{color:#222} .loading{text-align:center;padding:30px;color:#777}
+  th,td{border:1px solid #eee;padding:7px 8px;text-align:left;white-space:nowrap}
+  td{color:#222}
+  .empty{text-align:center;padding:40px 20px;color:#999;background:#fff;border-radius:14px}
+  .loading{text-align:center;padding:30px;color:#777}
 </style>
 </head>
 <body>
@@ -27,59 +29,57 @@
   <button id="btnPcx" onclick="switchMotor('PCX')">PCX</button>
 </div>
 <div class="chips" id="chips"></div>
-<div id="list"><div class="loading">Lagi ngambil...</div></div>
+<div id="list"><div class="empty">👆 Silahkan pilih kode di atas dulu<br><small>Contoh: MFW, MFV, MGV...</small></div></div>
 <script>
 const CONFIG = {
   STYLO: { id: "1Sveq5riagQ08sH4YzjIlKJCyrVSGbhc-ZjHWZ1i-Vv4", tabs: ["MFW","MFV","MGV","MGX","MF1"] },
   PCX:   { id: "1ERT9boBpF16VrVNBSRD6P1hTm6D0IsX16at6R3ZPtBs", tabs: ["MTZ","MVZ","MWZ","MT1","MV1","MW1"] }
 };
-let current = "STYLO", activeCode = "SEMUA";
+let current = "STYLO", activeCode = null; // <-- awalnya kosong, gak ada yang dipilih
 let cache = {};
 
 function switchMotor(m){
-  current=m; activeCode="SEMUA";
+  current=m; activeCode=null; cache={};
   document.getElementById("btnStylo").className = m=="STYLO"?"active":"";
   document.getElementById("btnPcx").className = m=="PCX"?"active":"";
-  load();
+  renderChips();
+  document.getElementById("list").innerHTML = `<div class="empty">👆 Silahkan pilih kode di atas dulu<br><small>Contoh: ${CONFIG[m].tabs.join(", ")}</small></div>`;
 }
 function renderChips(){
   const tabs = CONFIG[current].tabs;
-  document.getElementById("chips").innerHTML = `<button class="${activeCode=="SEMUA"?"active":""}" onclick="setCode('SEMUA')">SEMUA</button>` + tabs.map(t=>`<button class="${activeCode==t?"active":""}" onclick="setCode('${t}')">${t}</button>`).join("");
+  // SEMUA SUDAH DIHAPUS, tinggal kode-kode aja
+  document.getElementById("chips").innerHTML = tabs.map(t=>`<button class="${activeCode==t?"active":""}" onclick="setCode('${t}')">${t}</button>`).join("");
 }
-function setCode(c){ activeCode=c; renderChips(); render(); }
-
-async function fetchSheet(id, tab){
-  const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&sheet=${tab}`;
-  const res = await fetch(url);
-  const text = await res.text();
-  const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}')+1));
-  const rows = json.table.rows.map(r => (r.c||[]).map(cell => cell ? (cell.f || cell.v) : ""));
-  // buang baris yang bener-bener kosong semua
-  return rows.filter(r => r.some(c => String(c).trim() !== ""));
-}
-async function load(){
-  renderChips();
-  document.getElementById("list").innerHTML = `<div class="loading">Lagi ngambil ${current}...</div>`;
-  const cfg = CONFIG[current];
-  cache = {};
-  for(const tab of cfg.tabs){
-    try{ cache[tab] = await fetchSheet(cfg.id, tab); }
-    catch(e){ cache[tab] = [["Gagal ambil "+tab+" - cek izin Anyone with link"]]; }
+async function setCode(c){
+  activeCode=c; renderChips();
+  document.getElementById("list").innerHTML = `<div class="loading">Lagi ngambil ${c}...</div>`;
+  if(!cache[c]){
+    try{
+      const url = `https://docs.google.com/spreadsheets/d/${CONFIG[current].id}/gviz/tq?tqx=out:json&sheet=${c}`;
+      const res = await fetch(url);
+      const text = await res.text();
+      const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}')+1));
+      let rows = json.table.rows.map(r => (r.c||[]).map(cell => cell ? (cell.f || cell.v) : ""));
+      // 1. Buang kolom yang kosong semua
+      let maxCol = 0;
+      rows.forEach(r=>{ for(let i=r.length-1;i>=0;i--){ if(String(r[i]).trim()!==""){ maxCol=Math.max(maxCol,i); break; } } });
+      rows = rows.map(r => r.slice(0, maxCol+1));
+      // 2. Buang baris yang kosong semua
+      rows = rows.filter(r => r.some(cell => String(cell).trim() !== ""));
+      // 3. Buang kolom yang kosong semua (misal kolom pemisah)
+      let keepCol = [];
+      for(let col=0; col<=maxCol; col++){
+        if(rows.some(r => String(r[col]||"").trim() !== "")) keepCol.push(col);
+      }
+      rows = rows.map(r => keepCol.map(col => r[col]||""));
+      cache[c] = rows;
+    }catch(e){ cache[c] = [["Gagal ambil "+c]]; }
   }
-  render();
+  const rows = cache[c];
+  const table = `<table>${rows.map(r=>`<tr>${r.map(cell=>`<td>${cell}</td>`).join("")}</tr>`).join("")}</table>`;
+  document.getElementById("list").innerHTML = `<div class="card"><h3>[${c}]</h3>${table}</div>`;
 }
-function render(){
-  const list = document.getElementById("list");
-  const tabs = activeCode=="SEMUA" ? CONFIG[current].tabs : [activeCode];
-  let html = "";
-  tabs.forEach(tab=>{
-    const rows = cache[tab] || [];
-    const table = `<table>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}</table>`;
-    html += `<div class="card"><h3>[${tab}]</h3>${table}</div>`;
-  });
-  list.innerHTML = html || "Gak ketemu.";
-}
-load();
+renderChips();
 </script>
 </body>
 </html>
