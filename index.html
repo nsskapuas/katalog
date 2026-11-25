@@ -59,7 +59,7 @@ const url = `https://docs.google.com/spreadsheets/d/${idSheet}/gviz/tq?tqx=out:j
   const res = await fetch(url);
   const text = await res.text();
   const json = JSON.parse(text.substr(47).slice(0, -2));
-  return json.table.rows.map(r => r.c.map(c => (c && c.v != null ? c.v : "")));
+  return json.table.rows.map(r => r.c.map(c => (c && c.v != null ? c.v : ""))).slice(0, 100).map(row => row.slice(0, 9));
 }
 let tipeAktif="", kodeAktif="";
 async function pilihTipe(tipe){
@@ -80,8 +80,7 @@ async function pilihKode(el,kode){
   document.getElementById('loading').style.display='block';
   document.getElementById('tabel').innerHTML='';
   let semua = await ambilSheet(kodeAktif); 
-  let start = semua.findIndex(r => r[0] && r[0].toString().toUpperCase().includes('TYPE'));
-let data = { header: ["Type", "Uang Muka", "Cukup Bayar", "6", "12", "18", "24", "30", "36"], rows: semua.slice(start + 2) };
+  let data = { header: semua[0], rows: semua.slice(1) };
   document.getElementById('loading').style.display='none';
   let h="<table><tr>";
   data.header.forEach(c=>{ h+=`<th>${c}</th>`; });
