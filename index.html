@@ -101,6 +101,27 @@ async function pilihKode(el, kode){
     let otr = (idxTipe !== -1 && semua[idxTipe+1]) ? txt(semua[idxTipe+1][0]) : "";
     let subsidiVal = (idxSubsidi !== -1 && semua[idxSubsidi+1]) ? txt(semua[idxSubsidi+1][0]) : "";
     document.getElementById('infoBerlaku').innerText = berlaku + " | " + tipeMotor + " | OTR " + otr + " | SUBSIDI " + subsidiVal;
+    // Header ngikutin Spreadsheet (Baris Type: dan baris bawahnya)
+let idxHead = -1;
+for(let i=0;i<semua.length;i++){
+  if(txt(semua[i][0]).toUpperCase().indexOf("TYPE") !== -1) idxHead = i;
+}
+let headerDinamis = ["Type", "Uang Muka", "Cukup Bayar", "6", "12", "18", "24", "30*", "36"];
+if(idxHead !== -1 && semua[idxHead+1]){
+  let r1 = semua[idxHead];
+  let r2 = semua[idxHead+1];
+  headerDinamis = [
+    txt(r1[0]) || "Type",
+    (txt(r1[1]) + " " + txt(r2[1])).trim() || "Uang Muka",
+    (txt(r1[2]) + " " + txt(r2[2])).trim() || "Cukup Bayar",
+    txt(r2[3]) || "6",
+    txt(r2[4]) || "12",
+    txt(r2[5]) || "18",
+    txt(r2[6]) || "24",
+    txt(r2[7]) || "30",
+    txt(r2[8]) || "36"
+  ];
+}
     let rows = [];
     for(let i=0;i<semua.length;i++){
       let b = txt(semua[i][1]).replace(/\./g,"").replace(/,/g,"").replace(/Rp/g,"").replace(/ /g,"");
@@ -108,7 +129,7 @@ async function pilihKode(el, kode){
     }
     document.getElementById('loading').style.display = 'none';
     let h = "<table><tr>";
-    CONFIG.HEADER.forEach(function(c){ h += "<th>"+c+"</th>"; });
+    headerDinamis.forEach(function(c){ h += "<th>"+c+"</th>"; });
     h += "</tr>";
     rows.forEach(function(r, idx){
       h += "<tr><td>" + (idx === 0 ? tipeMotor : "") + "</td>";
