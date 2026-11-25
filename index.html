@@ -1,23 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <style>
 body{font-family:Arial,sans-serif;margin:0;background:#f4f4f4}
 .header{background:#CC0000;color:#fff;padding:16px;text-align:center}
 .header h1{margin:0;font-size:20px}
 .wrap{padding:14px;max-width:900px;margin:auto}
-.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden}
 .btn{padding:12px 18px;border:0;border-radius:20px;font-weight:bold;cursor:pointer;margin:4px}
 .btn-tipe,.btn-kode{background:#eee;color:#222;border:1px solid #ddd}
-.btn-tipe.active,.btn-kode.active{background:#CC0000;color:#fff}
-.table-wrap{overflow-x:auto;border:1px solid #ddd;border-radius:8px}
-table{border-collapse:collapse;width:100%;table-layout:fixed}
-th,td{border:1px solid #ddd;padding:7px 4px;text-align:center;font-size:12px;white-space:normal;word-break:break-word}
-td:first-child{text-align:left;word-break:break-word}
-td:nth-child(n+2){white-space:nowrap;word-break:normal;overflow-wrap:normal}
+.btn-tipe.active,.btn-kode.active{background:#CC0000;color:#fff;border-color:#CC0000}
+
+/* INI YANG GUA BENERIN BUAT HP */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #ddd;border-radius:8px;max-width:100%;display:block}
+table{border-collapse:collapse;width:680px;min-width:680px;table-layout:fixed}
+th,td{border:1px solid #ddd;padding:8px 4px;text-align:center;font-size:12px;white-space:nowrap;overflow:hidden}
+th{background:#CC0000;color:#fff;white-space:normal;line-height:1.2;min-height:36px}
+th:first-child,td:first-child{text-align:left;width:110px;min-width:110px;position:sticky;left:0;z-index:2;background:#fff}
+th:first-child{background:#CC0000;color:#fff;z-index:3}
+td:first-child{font-weight:bold;white-space:normal;line-height:1.2}
+tr:nth-child(even) td{background:#fff5f5}
+tr:nth-child(even) td:first-child{background:#fff5f5}
 .swipe-hint{font-size:12px;color:#888;text-align:center;margin:6px 0 0}
+#loading{text-align:center;padding:20px}
 .wa{display:block;text-align:center;background:#25D366;color:#fff;padding:13px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:12px}
+@media(max-width:480px){
+  .wrap{padding:8px}
+  .card{padding:10px}
+  th,td{font-size:11px;padding:7px 3px}
+  th:first-child,td:first-child{width:90px;min-width:90px}
+}
 </style>
 </head>
 <body>
@@ -28,7 +41,7 @@ td:nth-child(n+2){white-space:nowrap;word-break:normal;overflow-wrap:normal}
   <div class="card" id="hasilBox" style="display:none">
     <div id="loading">Loading...</div>
     <div class="table-wrap"><div id="tabel"></div></div>
-    <div class="swipe-hint">Geser tabel ke kiri untuk lihat angsuran lainnya</div>
+    <div class="swipe-hint">👈 Geser tabel ke kiri untuk lihat angsuran lainnya 👉</div>
     <a class="wa" href="https://wa.me/6285183349948" target="_blank">Update PL tanya admin/wa</a>
   </div>
 </div>
@@ -41,25 +54,28 @@ const CONFIG = {
 };
 let tipeAktif = "";
 function txt(v){ return v == null ? "" : String(v); }
-async function ambilSheet(id, sheet) {
-  const url = 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&headers=0&sheet=' + encodeURIComponent(sheet) + '&range=A1:I100&cache=' + Date.now();
+async function ambilSheet(spreadsheetId, namaSheet) {
+  const url = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(namaSheet);
   const res = await fetch(url);
-  let text = await res.text();
-  let start = text.indexOf("{");
-  let end = text.lastIndexOf("}");
-  let json = JSON.parse(text.substring(start, end+1));
-  let rows = json.table.rows || [];
+  const text = await res.text();
+  let rows = [];
+  let cur = '', inQ = false, row = [];
+  for(let i=0;i<text.length;i++){
+    let c = text[i];
+    if(c === '"'){ if(inQ && text[i+1] === '"'){ cur += '"'; i++; } else inQ = !inQ; }
+    else if(c === ',' && !inQ){ row.push(cur); cur=''; }
+    else if((c === '\n' || c === '\r') && !inQ){ if(c === '\r' && text[i+1] === '\n') i++; row.push(cur); rows.push(row); row=[]; cur=''; }
+    else cur += c;
+  }
+  if(cur !== '' || row.length) { row.push(cur); rows.push(row); }
   return rows.map(function(r){
-    let cells = r.c || [];
-    let out = [];
-    for(let i=0;i<9;i++){
-      let cell = cells[i];
-      if(!cell){ out.push(""); continue; }
-      if(cell.f != null && cell.f !== "") out.push(cell.f);
-      else if(cell.v != null) out.push(cell.v);
-      else out.push("");
-    }
-    return out;
+    return r.map(function(v){
+      let s = (v||"").trim();
+      if(s.indexOf("Rp") !== -1) return s;
+      let num = Number(s.replace(/\./g,"").replace(/,/g,""));
+      if(s !== "" && !isNaN(num) && s.replace(/[0-9\.\,]/g,"").trim() === "") return num;
+      return s;
+    });
   });
 }
 function formatAngka(v){ if(typeof v === 'number') return v.toLocaleString('id-ID'); return v; }
@@ -87,23 +103,41 @@ async function pilihKode(el, kode){
   document.getElementById('tabel').innerHTML = '';
   try{
     let semua = await ambilSheet(CONFIG.MOTORS[tipeAktif].spreadsheetId, kode);
+    let idxTipe = -1, idxHead = -1;
+    for(let i=0;i<semua.length;i++){
+      let a = txt(semua[i][0]).toUpperCase();
+      if(idxTipe === -1 && (a.indexOf("PCX") !== -1 || a.indexOf("STYLO") !== -1)) idxTipe = i;
+      if(idxHead === -1 && a.indexOf("TYPE") !== -1) idxHead = i;
+    }
+    let tipeMotor = idxTipe !== -1 ? txt(semua[idxTipe][0]) : "";
+    let headerDinamis = ["Type", "Uang Muka", "Cukup Bayar", "6", "12", "18", "24", "30*", "36"];
+    if(idxHead !== -1 && semua[idxHead+1]){
+      let r1 = semua[idxHead];
+      let r2 = semua[idxHead+1];
+      headerDinamis = [
+        txt(r1[0]) || "Type",
+        (txt(r1[1]) + " " + txt(r2[1])).trim() || "Uang Muka",
+        (txt(r1[2]) + " " + txt(r2[2])).trim() || "Cukup Bayar",
+        txt(r2[3]) || "6",
+        txt(r2[4]) || "12",
+        txt(r2[5]) || "18",
+        txt(r2[6]) || "24",
+        txt(r2[7]) || "30",
+        txt(r2[8]) || "36"
+      ];
+    }
+    let rows = [];
+    for(let i=0;i<semua.length;i++){
+      let b = txt(semua[i][1]).replace(/\./g,"").replace(/,/g,"").replace(/Rp/g,"").replace(/ /g,"");
+      if(b !== "" && !isNaN(Number(b)) && Number(b) > 100000) rows.push(semua[i]);
+    }
     document.getElementById('loading').style.display = 'none';
-    let h = "<table>";
-    semua.forEach(function(r){
-      let kosongSemua = true;
-      for(let i=0;i<r.length;i++){ if(txt(r[i]).trim() !== "") kosongSemua = false; }
-      if(kosongSemua) return;
-      // FIX: Kalau ini baris header 6 | 12, paksa isi UANG MUKA | CUKUP BAYAR
-      // Karena di Sheet cell-nya ke-merge jadi kebaca kosong sama Google
-      let isHeaderAngsuran = (txt(r[3]).trim() === "6" && txt(r[4]).trim() === "12");
-      if(isHeaderAngsuran){
-        if(txt(r[1]).trim() === "") r[1] = "UANG MUKA";
-        if(txt(r[2]).trim() === "") r[2] = "CUKUP BAYAR";
-      }
-      h += "<tr>";
-      for(let i=0;i<r.length;i++){
-        h += "<td>" + formatAngka(r[i]) + "</td>";
-      }
+    let h = "<table><tr>";
+    headerDinamis.forEach(function(c){ h += "<th>"+c+"</th>"; });
+    h += "</tr>";
+    rows.forEach(function(r, idx){
+      h += "<tr><td>" + (idx === 0 ? tipeMotor : "") + "</td>";
+      for(let i=1;i<9;i++){ h += "<td>" + formatAngka(r[i] == null ? "" : r[i]) + "</td>"; }
       h += "</tr>";
     });
     h += "</table>";
