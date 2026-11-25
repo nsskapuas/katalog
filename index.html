@@ -97,103 +97,85 @@ async function pilihKode(el, kode){
   try{
     let semua = await ambilSheet(CONFIG.MOTORS[tipeAktif].spreadsheetId, kode);
 
-    // === 1. TIPE + OTR DARI SHEET ===
-    let tipeMotor = "", otr = "";
-    let idxTipeRow = -1;
+    // === HEADER: Cari baris yang kolom B=Type dan kolom C=UANG ===
+    // Ini baris header tabel yang bener, bukan baris Type motor
+    let idxHead = -1;
+    for(let i=0;i<semua.length;i++){
+      let cB = txt(semua[i][1]).toUpperCase().replace(":","").trim();
+      let cC = txt(semua[i][2]).toUpperCase().trim();
+      if(cB === "TYPE" && cC.indexOf("UANG") !== -1){ idxHead = i; break; }
+    }
+
+    // === HEADER 100% DARI SHEET ===
+    let headerDinamis = [];
+    if(idxHead !== -1 && semua[idxHead+1]){
+      let r1 = semua[idxHead];    // Type: | UANG | CUKUP | 6 | 12 ...
+      let r2 = semua[idxHead+1];  //       | MUKA | BAYAR | ...
+      // Kolom B: Type - buang ":" nya
+      headerDinamis.push(txt(r1[1]).replace(":","").trim());
+      // Kolom C: UANG + MUKA
+      headerDinamis.push((txt(r1[2]) + " " + txt(r2[2])).trim());
+      // Kolom D: CUKUP + BAYAR
+      headerDinamis.push((txt(r1[3]) + " " + txt(r2[3])).trim());
+      // Kolom E dst: Tenor dari baris atas Sheet, apa adanya
+      for(let c=4;c<r1.length;c++){
+        let v = txt(r1[c]).trim();
+        if(v !== "") headerDinamis.push(v);
+      }
+    }
+
+    // === INFO ATAS: AREA / PROGRAM / BERLAKU / TIPE / OTR ===
+    // Semua dibaca dari teks Sheet, bukan permanen
+    let tipeMotor = "", otr = "", area = "", berlaku = "", program = "";
+    let semuaTeks = "";
+    for(let i=0;i<semua.length;i++) for(let c=0;c<semua[i].length;c++) semuaTeks += " " + txt(semua[i][c]);
+    let upTeks = semuaTeks.toUpperCase();
+    // AREA: kata setelah AREA sampai PROGRAM
+    if(upTeks.indexOf("AREA") !== -1){
+      let s = semuaTeks.substring(upTeks.indexOf("AREA") + 4).replace(/^[: ]+/,"");
+      let cut = s.toUpperCase().indexOf("PROGRAM");
+      if(cut !== -1) s = s.substring(0, cut);
+      area = s.replace(/DAFTAR HARGA.*/i,"").replace(/:/g,"").trim().split("  ")[0].trim().split(" ")[0];
+    }
+    if(upTeks.indexOf("PROGRAM") !== -1){
+      let s = semuaTeks.substring(upTeks.indexOf("PROGRAM") + 7).replace(/^[: ]+/,"");
+      let cut = s.toUpperCase().indexOf("BERLAKU");
+      if(cut !== -1) s = s.substring(0, cut);
+      program = s.replace(/:/g,"").trim().split("  ")[0].trim();
+    }
+    // BERLAKU: cari sel yang ada bulan/tahun
     for(let i=0;i<semua.length;i++){
       for(let c=0;c<semua[i].length;c++){
         let v = txt(semua[i][c]);
         let up = v.toUpperCase();
-        if(tipeMotor === "" && (up.indexOf("PCX") !== -1 || up.indexOf("STYLO") !== -1) && up.indexOf("(") !== -1 && up.indexOf("DAFTAR") === -1){
-          tipeMotor = v; idxTipeRow = i; break;
+        if(up.indexOf("BERLAKU") !== -1){
+          // Berlaku bisa 1 sel "Berlaku OKT 2026" atau pisah
+          let m = v.match(/(OKT|NOV|DES|JAN|FEB|MAR|APR|MEI|JUN|JUL|AGU|SEP).*?(\d{4})/i);
+          if(m) berlaku = m[0].toUpperCase();
+          else if(semua[i][c+1]) berlaku = txt(semua[i][c+1]);
         }
       }
-      if(tipeMotor !== "") break;
     }
-    if(idxTipeRow !== -1){
-      for(let i=idxTipeRow+1;i<Math.min(semua.length, idxTipeRow+4);i++){
-        for(let c=0;c<semua[i].length;c++){
-          let v = txt(semua[i][c]);
-          if(v.indexOf("Rp") !== -1){ otr = v; break; }
-        }
-        if(otr !== "") break;
-      }
-    }
-
-    // === 2. AREA / BERLAKU / PROGRAM DARI TEKS SHEET ===
-    let area = "", berlaku = "", program = "";
-    let semuaTeks = "";
-    for(let i=0;i<semua.length;i++) for(let c=0;c<semua[i].length;c++) semuaTeks += " " + txt(semua[i][c]);
-    let upTeks = semuaTeks.toUpperCase();
-    if(upTeks.indexOf("AREA") !== -1){
-      let s = semuaTeks.substring(upTeks.indexOf("AREA") + 4);
-      s = s.replace(/^[: ]+/,"");
-      let cut = s.toUpperCase().indexOf("PROGRAM");
-      if(cut !== -1) s = s.substring(0, cut);
-      area = s.replace(/DAFTAR HARGA.*/i,"").replace(/:/g,"").trim().split("  ")[0].trim();
-      area = area.split(" ")[0];
-    }
-    if(upTeks.indexOf("PROGRAM") !== -1){
-      let s = semuaTeks.substring(upTeks.indexOf("PROGRAM") + 7);
-      s = s.replace(/^[: ]+/,"");
-      let cutUang = s.toUpperCase().indexOf("UANG");
-      if(cutUang !== -1) s = s.substring(0, cutUang);
-      program = s.replace(/:/g,"").trim().split("  ")[0].trim();
-      program = program.split(" ").slice(0,2).join(" ");
-    }
+    // TIPE MOTOR: baris data pertama yang kolom B ada STYLO/PCX dan kolom C angka
+    // OTR: baris yang kolom B ada Rp dan kolom C ada SUBSIDI
     for(let i=0;i<semua.length;i++){
-      let gabung = "";
-      for(let c=0;c<semua[i].length;c++) gabung += " " + txt(semua[i][c]);
-      if(gabung.toUpperCase().indexOf("BERLAKU") !== -1){
-        for(let r=i;r<=Math.min(semua.length-1,i+1);r++){
-          for(let c=0;c<semua[r].length;c++){
-            let v = txt(semua[r][c]).toUpperCase();
-            if(v.indexOf("OKT") !== -1 || v.indexOf("NOV") !== -1 || v.indexOf("DES") !== -1 || v.indexOf("JAN") !== -1 || v.indexOf("2026") !== -1 || v.indexOf("2025") !== -1){
-              if(v.indexOf("BERLAKU") === -1 && v.indexOf("DAFTAR") === -1) berlaku = txt(semua[r][c]);
-            }
-          }
-        }
+      let b = txt(semua[i][1]);
+      let c = txt(semua[i][2]);
+      if(b.indexOf("Rp") !== -1 && c.toUpperCase().indexOf("SUBSIDI") !== -1){ otr = b; }
+      if(tipeMotor === "" && (b.toUpperCase().indexOf("PCX") !== -1 || b.toUpperCase().indexOf("STYLO") !== -1)){
+        let numC = Number(txt(c).replace(/\./g,"").replace(/,/g,""));
+        if(c !== "" && !isNaN(numC) && numC > 100000) tipeMotor = b;
       }
     }
 
-    // === 3. HEADER 100% DARI SPREADSHEET - TANPA PERMANEN ===
-    // Cari baris header: baris yang ada tulisan TYPE
-    let idxHead = -1;
-    for(let i=0;i<semua.length;i++){
-      for(let c=0;c<semua[i].length;c++){
-        let v = txt(semua[i][c]).toUpperCase().replace(":","").trim();
-        if(v === "TYPE"){
-          idxHead = i; break;
-        }
-      }
-      if(idxHead !== -1) break;
-    }
-    let headerDinamis = [];
-    if(idxHead !== -1 && semua[idxHead+1]){
-      let r1 = semua[idxHead];     // Baris: Type | UANG | CUKUP | Angsuran...
-      let r2 = semua[idxHead+1];   // Baris:      | MUKA | BAYAR | 6 | 12 | ...
-      // Kolom 1: Type - dari Sheet
-      headerDinamis.push(txt(r1[1]) || txt(r2[1]));
-      // Kolom 2: UANG + MUKA - digabung dari 2 baris Sheet
-      let h2 = (txt(r1[2]) + " " + txt(r2[2])).trim();
-      headerDinamis.push(h2);
-      // Kolom 3: CUKUP + BAYAR - digabung dari 2 baris Sheet
-      let h3 = (txt(r1[3]) + " " + txt(r2[3])).trim();
-      headerDinamis.push(h3);
-      // Kolom 4 dst: Tenor - dari baris ke-2 Sheet, apa adanya
-      for(let c=4;c<r2.length;c++){
-        let v = txt(r2[c]).trim();
-        if(v !== "") headerDinamis.push(v);
-      }
-    }
-    // Kalau header masih kosong (Sheet error), biarin kosong, jangan isi permanen
-    // Jadi kalau lu ubah Sheet, web 100% ikut Sheet
-
-    // === 4. BARIS DATA DP DARI SHEET ===
+    // === DATA DP: dari baris setelah header, yang kolom C angka > 100rb ===
+    // Baris OTR / SUBSIDI otomatis ke-skip karena kolom C nya bukan angka
     let rows = [];
-    for(let i=0;i<semua.length;i++){
-      let b = txt(semua[i][2]).replace(/\./g,"").replace(/,/g,"").replace(/Rp/g,"").replace(/ /g,"");
-      if(b !== "" && !isNaN(Number(b)) && Number(b) > 100000) rows.push(semua[i]);
+    if(idxHead !== -1){
+      for(let i=idxHead+2;i<semua.length;i++){
+        let b = txt(semua[i][2]).replace(/\./g,"").replace(/,/g,"").replace(/Rp/g,"").replace(/ /g,"");
+        if(b !== "" && !isNaN(Number(b)) && Number(b) > 100000) rows.push(semua[i]);
+      }
     }
 
     document.getElementById('loading').style.display = 'none';
