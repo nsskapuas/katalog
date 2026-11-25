@@ -47,10 +47,8 @@ tr:nth-child(even) td{background:#fff5f5}
 // ★★★ CUMA EDIT DI SINI AJA BRO ★★★
 // ============================================================
 const CONFIG = {
-  // Header tabel, dikunci biar gak kena cell gabungan di Sheet
   HEADER: ["Type", "Uang Muka", "Cukup Bayar", "6", "12", "18", "24", "30*", "36"],
   MOTORS: {
-    // Tambah motor baru: copy 1 blok ini, ganti nama + spreadsheetId + kodes
     PCX: {
       label: "HONDA PCX",
       spreadsheetId: "1ERT9boBpF16VrVNBSRD6P1hTm6D0IsX16at6R3ZPtBs",
@@ -61,24 +59,22 @@ const CONFIG = {
       spreadsheetId: "1Sveq5riagQ08sH4YzjIlKJCyrVSGbhc-ZjHWZ1i-Vv4",
       kodes: ["MFW", "MFV", "MGV", "MGX", "MF1"]
     }
-    // Contoh motor baru:
-    // VARIO: { label: "HONDA VARIO", spreadsheetId: "ISI_ID_BARU", kodes: ["XXX", "YYY"] },
   }
 };
 // ============================================================
-// JANGAN EDIT DARI SINI KE BAWAH, KECUALI MAU NGUBAH TAMPILAN
+// JANGAN EDIT DARI SINI KE BAWAH
 // ============================================================
 
 let tipeAktif = "", kodeAktif = "";
 
 async function ambilSheet(spreadsheetId, namaSheet) {
-  // Ambil cuma A:I, 100 baris. headers=0 biar cell gabungan gak bikin kacau
   const query = encodeURIComponent('select A,B,C,D,E,F,G,H,I limit 100');
   const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=${namaSheet}&headers=0&tq=${query}`;
   const res = await fetch(url);
   const text = await res.text();
   const json = JSON.parse(text.substr(47).slice(0, -2));
-  return json.table.rows.map(r => r.c.map(c => (c && c.v != null ? c.v : "")));
+  // Pakai c.f dulu biar Rp31.464.000 dll kebaca apa adanya dari Sheet
+  return json.table.rows.map(r => r.c.map(c => (c && c.f != null ? c.f : (c && c.v != null ? c.v : ""))));
 }
 
 function formatAngka(v) {
@@ -120,22 +116,26 @@ async function pilihKode(el, kode) {
   try {
     let semua = await ambilSheet(CONFIG.MOTORS[tipeAktif].spreadsheetId, kode);
 
-    // Cari info BERLAKU di baris atas Sheet, buat ditampilin di atas tabel
-    let berlaku = semua.find(r => r.join(" ").toUpperCase().includes("BERLAKU"));
-    if (berlaku) document.getElementById('infoBerlaku').innerText = berlaku.filter(x => x !== "").join(" : ");
+    // Ini semua ngambil dari Sheet lu apa adanya, sesuai foto Sheet lu:
+    let berlaku = (semua[4]?.[0] || "") + " " + (semua[5]?.[0] || ""); // A5 Berlaku + A6 OKT 2026
+    let tipeMotor = semua[7]?.[0] || ""; // A8 STYLO CBS A (MFW)
+    let otr = semua[8]?.[0] || ""; // A9 Rp31.464.000
+    let subsidiLabel = semua[10]?.[0] || ""; // A11 SUBSIDI
+    let subsidiVal = semua[11]?.[0] || ""; // A12 Rp0
 
-    // Cari baris yang ada kata "TYPE", itu patokan awal data. Lewatin 2 baris header UANG/MUKA nya
-    let start = semua.findIndex(r => r[0] && r[0].toString().toUpperCase().includes('TYPE'));
-    if (start === -1) start = 0;
-    let rows = semua.slice(start + 2).filter(r => r.some(c => c !== "" && c != null));
+    document.getElementById('infoBerlaku').innerText = berlaku + " | " + tipeMotor + " | OTR " + otr + " | " + subsidiLabel + " " + subsidiVal;
+
+    // Data angka mulai baris 8 (index 7), kolom B sampai I
+    let rows = semua.slice(7).filter(r => r.slice(1).some(c => c !== "" && c != null));
 
     document.getElementById('loading').style.display = 'none';
     let h = "<table><tr>";
     CONFIG.HEADER.forEach(c => { h += `<th>${c}</th>`; });
     h += "</tr>";
-    rows.forEach(r => {
+    rows.forEach((r, idx) => {
       h += "<tr>";
-      for (let i = 0; i < 9; i++) {
+      h += `<td>${idx === 0 ? tipeMotor : ""}</td>`;
+      for (let i = 1; i < 9; i++) {
         h += `<td>${formatAngka(r[i] ?? "")}</td>`;
       }
       h += "</tr>";
