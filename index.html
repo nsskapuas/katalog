@@ -1,152 +1,120 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Price List Honda - Kapuas</title>
 <style>
-body{font-family:Arial,sans-serif;margin:0;background:#f4f4f4}
-.header{background:#CC0000;color:#fff;padding:16px;text-align:center}
-.header h1{margin:0;font-size:20px}
-.wrap{padding:14px;max-width:900px;margin:auto}
-.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden}
-.btn{padding:12px 18px;border:0;border-radius:20px;font-weight:bold;cursor:pointer;margin:4px}
-.btn-tipe,.btn-kode{background:#eee;color:#222;border:1px solid #ddd}
-.btn-tipe.active,.btn-kode.active{background:#CC0000;color:#fff;border-color:#CC0000}
-
-/* INI YANG GUA BENERIN BUAT HP */
-.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #ddd;border-radius:8px;max-width:100%;display:block}
-table{border-collapse:collapse;width:680px;min-width:680px;table-layout:fixed}
-th,td{border:1px solid #ddd;padding:8px 4px;text-align:center;font-size:12px;white-space:nowrap;overflow:hidden}
-th{background:#CC0000;color:#fff;white-space:normal;line-height:1.2;min-height:36px}
-th:first-child,td:first-child{text-align:left;width:110px;min-width:110px;position:sticky;left:0;z-index:2;background:#fff}
-th:first-child{background:#CC0000;color:#fff;z-index:3}
-td:first-child{font-weight:bold;white-space:normal;line-height:1.2}
-tr:nth-child(even) td{background:#fff5f5}
-tr:nth-child(even) td:first-child{background:#fff5f5}
-.swipe-hint{font-size:12px;color:#888;text-align:center;margin:6px 0 0}
-#loading{text-align:center;padding:20px}
-.wa{display:block;text-align:center;background:#25D366;color:#fff;padding:13px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:12px}
-@media(max-width:480px){
-  .wrap{padding:8px}
-  .card{padding:10px}
-  th,td{font-size:11px;padding:7px 3px}
-  th:first-child,td:first-child{width:90px;min-width:90px}
-}
+  *{box-sizing:border-box} body{margin:0;font-family:Arial;background:#f2f2f2;padding:12px}
+  h1{text-align:center;font-size:22px;margin:6px 0 2px} .sub{text-align:center;color:#777;font-size:13px;margin-bottom:12px}
+  .tabs{display:flex;gap:8px;margin-bottom:10px}
+  .tabs button{flex:1;padding:12px;border:none;border-radius:10px;font-weight:800;font-size:16px;cursor:pointer;background:#ddd}
+  .tabs button.active{background:#d60000;color:#fff}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .chips button{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:20px;font-weight:700;cursor:pointer}
+  .chips button.active{background:#111;color:#fff}
+  .card{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  .card h3{margin:0;font-size:18px} .price{font-size:22px;font-weight:800;color:#d60000;margin:4px 0 8px}
+  table{width:100%;border-collapse:collapse;font-size:13px;overflow-x:auto;display:block}
+  th,td{border:1px solid #eee;padding:6px;text-align:right;white-space:nowrap} th{background:#111;color:#fff} td:first-child,th:first-child{text-align:left;font-weight:700}
+  .loading{text-align:center;padding:30px;color:#777}
 </style>
 </head>
 <body>
-<div class="header"><h1>DAFTAR HARGA PCX & STYLO</h1><div>Harga OTR - DP - Angsuran</div></div>
-<div class="wrap">
-  <div class="card"><b>1. Pilih Tipe Motor:</b><br><br><div id="tipeList"></div></div>
-  <div class="card" id="kodeBox" style="display:none"><b>2. Pilih Kode:</b><br><br><div id="kodeList"></div></div>
-  <div class="card" id="hasilBox" style="display:none">
-    <div id="loading">Loading...</div>
-    <div class="table-wrap"><div id="tabel"></div></div>
-    <div class="swipe-hint">👈 Geser tabel ke kiri untuk lihat angsuran lainnya 👉</div>
-    <a class="wa" href="https://wa.me/6285183349948" target="_blank">Update PL tanya admin/wa</a>
-  </div>
+<h1>PRICE LIST HONDA</h1><div class="sub">AREA: KAPUAS - Update Otomatis dari Spreadsheet</div>
+<div class="tabs">
+  <button id="btnStylo" class="active" onclick="switchMotor('STYLO')">STYLO</button>
+  <button id="btnPcx" onclick="switchMotor('PCX')">PCX</button>
 </div>
+<div class="chips" id="chips"></div>
+<div id="list"><div class="loading">Lagi ngambil...</div></div>
 <script>
 const CONFIG = {
-  MOTORS: {
-    PCX: { label: "HONDA PCX", spreadsheetId: "1ERT9boBpF16VrVNBSRD6P1hTm6D0IsX16at6R3ZPtBs", kodes: ["MTZ", "MVZ", "MWZ", "MT1", "MV1", "MW1"] },
-    STYLO: { label: "HONDA STYLO", spreadsheetId: "1Sveq5riagQ08sH4YzjIlKJCyrVSGbhc-ZjHWZ1i-Vv4", kodes: ["MFW", "MFV", "MGV", "MGX", "MF1"] }
-  }
+  STYLO: { id: "1Sveq5riagQ08sH4YzjIlKJCyrVSGbhc-ZjHWZ1i-Vv4", tabs: ["MFW","MFV","MGV","MGX","MF1"] },
+  PCX:   { id: "1ERT9boBpF16VrVNBSRD6P1hTm6D0IsX16at6R3ZPtBs", tabs: ["MTZ","MVZ","MWZ","MT1","MV1","MW1"] }
 };
-let tipeAktif = "";
-function txt(v){ return v == null ? "" : String(v); }
-async function ambilSheet(spreadsheetId, namaSheet) {
-  const url = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(namaSheet);
+let current = "STYLO", activeCode = "SEMUA";
+let cache = {}; // tab -> {title, price, headers, rows}
+
+function switchMotor(m){
+  current=m; activeCode="SEMUA";
+  document.getElementById("btnStylo").className = m=="STYLO"?"active":"";
+  document.getElementById("btnPcx").className = m=="PCX"?"active":"";
+  load();
+}
+function renderChips(){
+  const tabs = CONFIG[current].tabs;
+  document.getElementById("chips").innerHTML = `<button class="${activeCode=="SEMUA"?"active":""}" onclick="setCode('SEMUA')">SEMUA</button>` + tabs.map(t=>`<button class="${activeCode==t?"active":""}" onclick="setCode('${t}')">${t}</button>`).join("");
+}
+function setCode(c){ activeCode=c; renderChips(); render(); }
+
+async function fetchSheet(id, tab){
+  const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&sheet=${tab}`;
   const res = await fetch(url);
   const text = await res.text();
-  let rows = [];
-  let cur = '', inQ = false, row = [];
-  for(let i=0;i<text.length;i++){
-    let c = text[i];
-    if(c === '"'){ if(inQ && text[i+1] === '"'){ cur += '"'; i++; } else inQ = !inQ; }
-    else if(c === ',' && !inQ){ row.push(cur); cur=''; }
-    else if((c === '\n' || c === '\r') && !inQ){ if(c === '\r' && text[i+1] === '\n') i++; row.push(cur); rows.push(row); row=[]; cur=''; }
-    else cur += c;
-  }
-  if(cur !== '' || row.length) { row.push(cur); rows.push(row); }
-  return rows.map(function(r){
-    return r.map(function(v){
-      let s = (v||"").trim();
-      if(s.indexOf("Rp") !== -1) return s;
-      let num = Number(s.replace(/\./g,"").replace(/,/g,""));
-      if(s !== "" && !isNaN(num) && s.replace(/[0-9\.\,]/g,"").trim() === "") return num;
-      return s;
-    });
+  const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}')+1));
+  const rows = json.table.rows.map(r => (r.c||[]).map(cell => cell ? (cell.f || cell.v) : ""));
+  return rows;
+}
+function parseRows(rows){
+  // Cari baris yang ada nama motor (mengandung PCX / STYLO) dan baris harga Rp
+  let title="", price="";
+  let headerRow = -1;
+  rows.forEach((r,i)=>{
+    const joined = r.join(" ");
+    if(!title && /PCX|STYLO/i.test(joined) && joined.length < 60) title = r.filter(Boolean).join(" ");
+    if(!price && /Rp/i.test(joined) && joined.length < 40) price = r.filter(Boolean)[0] || "";
+    if(headerRow==-1 && r.some(c=>String(c).trim()=="11" || String(c).trim()=="UANG MUKA")) headerRow = i;
   });
-}
-function formatAngka(v){ if(typeof v === 'number') return v.toLocaleString('id-ID'); return v; }
-function renderTipe(){
-  let h = "";
-  for(let key in CONFIG.MOTORS){ h += '<button class="btn btn-tipe" onclick="pilihTipe(\''+key+'\')">'+CONFIG.MOTORS[key].label+'</button>'; }
-  document.getElementById('tipeList').innerHTML = h;
-}
-function pilihTipe(tipe){
-  tipeAktif = tipe;
-  document.querySelectorAll('.btn-tipe').forEach(function(b){ b.classList.remove('active'); });
-  event.target.classList.add('active');
-  document.getElementById('kodeBox').style.display = 'block';
-  document.getElementById('hasilBox').style.display = 'none';
-  let h = "";
-  CONFIG.MOTORS[tipe].kodes.forEach(function(k){ h += '<button class="btn btn-kode" onclick="pilihKode(this,\''+k+'\')">'+k+'</button>'; });
-  document.getElementById('kodeList').innerHTML = h;
-}
-async function pilihKode(el, kode){
-  document.querySelectorAll('.btn-kode').forEach(function(b){ b.classList.remove('active'); });
-  el.classList.add('active');
-  document.getElementById('hasilBox').style.display = 'block';
-  document.getElementById('loading').style.display = 'block';
-  document.getElementById('loading').innerText = 'Loading...';
-  document.getElementById('tabel').innerHTML = '';
-  try{
-    let semua = await ambilSheet(CONFIG.MOTORS[tipeAktif].spreadsheetId, kode);
-    let idxTipe = -1, idxHead = -1;
-    for(let i=0;i<semua.length;i++){
-      let a = txt(semua[i][0]).toUpperCase();
-      if(idxTipe === -1 && (a.indexOf("PCX") !== -1 || a.indexOf("STYLO") !== -1)) idxTipe = i;
-      if(idxHead === -1 && a.indexOf("TYPE") !== -1) idxHead = i;
-    }
-    let tipeMotor = idxTipe !== -1 ? txt(semua[idxTipe][0]) : "";
-    let headerDinamis = ["Type", "Uang Muka", "Cukup Bayar", "6", "12", "18", "24", "30*", "36"];
-    if(idxHead !== -1 && semua[idxHead+1]){
-      let r1 = semua[idxHead];
-      let r2 = semua[idxHead+1];
-      headerDinamis = [
-        txt(r1[0]) || "Type",
-        (txt(r1[1]) + " " + txt(r2[1])).trim() || "Uang Muka",
-        (txt(r1[2]) + " " + txt(r2[2])).trim() || "Cukup Bayar",
-        txt(r2[3]) || "6",
-        txt(r2[4]) || "12",
-        txt(r2[5]) || "18",
-        txt(r2[6]) || "24",
-        txt(r2[7]) || "30",
-        txt(r2[8]) || "36"
-      ];
-    }
-    let rows = [];
-    for(let i=0;i<semua.length;i++){
-      let b = txt(semua[i][1]).replace(/\./g,"").replace(/,/g,"").replace(/Rp/g,"").replace(/ /g,"");
-      if(b !== "" && !isNaN(Number(b)) && Number(b) > 100000) rows.push(semua[i]);
-    }
-    document.getElementById('loading').style.display = 'none';
-    let h = "<table><tr>";
-    headerDinamis.forEach(function(c){ h += "<th>"+c+"</th>"; });
-    h += "</tr>";
-    rows.forEach(function(r, idx){
-      h += "<tr><td>" + (idx === 0 ? tipeMotor : "") + "</td>";
-      for(let i=1;i<9;i++){ h += "<td>" + formatAngka(r[i] == null ? "" : r[i]) + "</td>"; }
-      h += "</tr>";
+  // Header: baris headerRow, data: setelahnya sampai baris kosong / yang ada tulisan PERSYARATAN / Catatan
+  let headers = [], data = [];
+  if(headerRow!=-1){
+    // Ambil baris header + baris sebelumnya yang ada UANG MUKA / ANGSURAN untuk label
+    // Sederhanakan: header = baris headerRow, tapi ganti kolom pertama jadi "UANG MUKA"
+    headers = rows[headerRow].map((c,idx)=> {
+      if(idx==0) return "UANG MUKA";
+      if(idx==1) return "BAYAR";
+      return c ? c+"x" : "";
     });
-    h += "</table>";
-    document.getElementById('tabel').innerHTML = h;
-  }catch(e){
-    document.getElementById('loading').innerText = 'Error: ' + e.message;
+    for(let i=headerRow+1;i<rows.length;i++){
+      const r = rows[i];
+      if(!r[0]) continue;
+      const j = r.join(" ");
+      if(/PERSYARATAN|Catatan|SUBSIDI|ONE HEART|Foto Copy/i.test(j)) break;
+      if(!/^\d/.test(String(r[0]).replace(/[^0-9]/g,"").slice(0,1)) && isNaN(parseInt(String(r[0]).replace(/\D/g,"")))) continue;
+      // hanya ambil yang kolom pertama angka (DP)
+      if(String(r[0]).match(/\d{3}\.\d{3}/) || String(r[0]).match(/^\d/)) data.push(r);
+      if(data.length>60) break;
+    }
   }
+  return {title, price, headers, data};
 }
-renderTipe();
+async function load(){
+  renderChips();
+  document.getElementById("list").innerHTML = `<div class="loading">Lagi ngambil ${current}...</div>`;
+  const cfg = CONFIG[current];
+  cache = {};
+  for(const tab of cfg.tabs){
+    try{
+      const rows = await fetchSheet(cfg.id, tab);
+      cache[tab] = parseRows(rows);
+    }catch(e){ cache[tab] = {title:tab, price:"", headers:[], data:[]}; }
+  }
+  render();
+}
+function render(){
+  const list = document.getElementById("list");
+  const tabs = activeCode=="SEMUA" ? CONFIG[current].tabs : [activeCode];
+  let html = "";
+  tabs.forEach(tab=>{
+    const d = cache[tab]; if(!d) return;
+    const thead = d.headers.length ? `<tr>${d.headers.map(h=>`<th>${h}</th>`).join("")}</tr>` : "";
+    const tbody = d.data.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("");
+    html += `<div class="card"><h3>[${tab}] ${d.title || tab}</h3><div class="price">${d.price || ""}</div><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+  });
+  list.innerHTML = html || "Gak ketemu / gagal ambil. Cek izin Anyone with link.";
+}
+load();
 </script>
 </body>
 </html>
